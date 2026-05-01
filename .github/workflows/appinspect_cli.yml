@@ -66,7 +66,7 @@ jobs:
           included_tags: cloud, splunk_appinspect
 
       - name: Upload package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: github_app_for_splunk-1.0.0.tar.gz
           path: ./github_app_for_splunk-1.0.0.tar.gz
