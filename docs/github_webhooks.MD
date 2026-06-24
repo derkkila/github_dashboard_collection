@@ -71,8 +71,8 @@ Once that is complete and webhooks are triggering, you'll want to update the mac
 </tr>
 <tr>
 <td>GitHub::VulnerabilityAlert</td>
-<td>Repository vulnerability alerts</td>
-<td>Dependabot alert (aka dependency vulnerability alert) created, resolved, or dismissed on a repository.</td>
+<td>Dependabot alerts</td>
+<td>Dependabot alert created, dismissed, fixed, reopened, auto_dismissed, auto_reopened, or reintroduced on a repository. Also supports legacy repository vulnerability alert actions (create, dismiss, resolve).</td>
 </tr>
 <tr>
 <td>GitHub::SecretScanning</td>
