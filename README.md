@@ -70,7 +70,7 @@ To enable it, configure the following under **Settings → Secrets and variables
 | Name | Type | Description |
 | --- | --- | --- |
 | `SPLUNK_ACCESS_TOKEN` | Secret | A Splunk Observability Cloud ingest/access token. This is **distinct** from the `HEC_TOKEN` used by the log pipeline. |
-| `SFX_REALM` | Secret | Your Observability Cloud realm, e.g. `us0`, `us1`, or `eu0`. Used to build the OTLP endpoint `https://ingest.<SFX_REALM>.signalfx.com/otlp`. |
+| `SFX_REALM` | Secret | Your Observability Cloud realm, e.g. `us0`, `us1`, or `eu0`. Used to build the OTLP/HTTP trace endpoint `https://ingest.<SFX_REALM>.signalfx.com/v2/trace/otlp`. |
 
 To read the triggering workflow run from the GitHub API, the workflow uses the built-in `github.token` (granted `actions: read` and `contents: read` via the workflow's `permissions` block) — no additional token secret is required.
 
