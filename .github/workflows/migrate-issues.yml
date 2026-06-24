@@ -1,0 +1,121 @@
+name: Migrate Issues from Splunk Repo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create migrated issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issues = [
+              {
+                title: "Dashboard Support for Alerts logs using Splunk addon for github",
+                body: `**Originally filed by:** @mahirchavda\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/72\n\n---\n\n**Is your feature request related to a problem? Please describe.**\nI am collecting alerts logs using the Splunk addon for github using Github Alerts modular inputs. \nThe Below Alert Security related dashboards are not populating:\n* Advanced Security Overview\n* Dependabot Alerts\n* Code Scanning Alerts\n* Secret Scanning Alerts\n\n**Describe the solution you'd like**\nAbove mentioned dashboards should work with the data collected using github alerts modular inputs using Splunk addon for Github\n\n**Describe alternatives you've considered**\n\n\n**Additional context**\n`,
+                labels: ["enhancement"]
+              },
+              {
+                title: "Minimum permissions for Audit Logs",
+                body: `**Originally filed by:** @Mohammed-Khan-DSO\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/70\n\n---\n\nHi,\n\nI am wanting to integrate Github with our Splunk Cloud instance however we are trying to implement a DevSecOps capability so we are wanting to deploy and manage via IAC etc. However I was wanting to confirm if the personal access token scope is required at the level mentioned in the Docs? We have apprehensions on the scopes requiring Admin priviledges, what is the minimum requirements for the scope to allow us to pull the audit logs successfully and via IAC methodology?   `,
+                labels: []
+              },
+              {
+                title: "Repository Vulnerability Alert webhook is Deprecated and being Removed",
+                body: `**Originally filed by:** @mhamill2\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/68\n\n---\n\n**Describe the bug**\nThe Repository Vulnerability Webhook is deprecated. Although it doesn't seem to have happened yet, the webhook was/is planned to be removed in 2023: https://github.blog/changelog/2022-10-06-new-dependabot-alerts-webhook\n\nThere is a new "Dependabot Alert" webhook that replaces the old Repository Vulnerability Alert hook. The app should be updated to support this new webhook. Currently, the data doesn't show up in the dashboards. The records that come into Splunk get tagged with CodeScanning as the eventtype and there are new actions that should be supported as well with this new hook.\n\n**To Reproduce**\nSteps to reproduce the behavior:\n1. Configure GitHub to send Dependabot Alert webhooks to Splunk\n2. See that they are not shown in the dependabot dashboards\n\n**Expected behavior**\nThe app should support the Dependabot alert webhook in place of the repository vulnerability alerts hook. \n\n**Desktop (please complete the following information):**\n - OS: Mac Ventura 13.6.1\n - Browser: Chrome\n - Version: App version 1.3.2\n\n**Additional context**\nN/A`,
+                labels: ["bug"]
+              },
+              {
+                title: "Github for Splunk Value Analytics Dashboard",
+                body: `**Originally filed by:** @davial1\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/67\n\n---\n\n**Describe the bug**\n\nWe noticed on the **Value Analytics Dashboard** that the queries don't run correctly. The dashboard does not load for any results starting on the \`eval\` statements. Queries seem to load okay for eventtype searches and we have verified the appropriate eventtypes are configured and the macros load correctly. Just curious if we are missing something, since I am using GH Cloud and few of the eventtypes had to be modified to get some of the other searches working correctly.\n\nNote: I have prepended \`data.\` on many of fields due to how the data is structured in our environment.\n\n**To Reproduce**\nSteps to reproduce the behavior:\n1. Go to 'Developer Insights'\n2. Click on 'Value Stream Analytics'\n3. No results for Total Time Results\n\n**Additional context**\nRunning Splunk Cloud and using Github Cloud`,
+                labels: ["bug"]
+              },
+              {
+                title: "Broken configuration link",
+                body: `**Originally filed by:** @lisedelage\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/66\n\n---\n\n**Describe the bug**\nThe configuration link in the app sends to a blank page: \nhttps://xxx.splunkcloud.com/en-US/app/github_app_for_splunk/configuration\n\n**To Reproduce**\nSteps to reproduce the behavior:\n1. Go to 'Config'\n2. Click on 'Configuration'\n3. See a blank page\n\n**Expected behavior**\nI want to see the configuration part of the app. \n\n**Desktop (please complete the following information):**\n - OS: Mac OS Ventura 13.3.1\n - Browser: safari 16.4 and Chrome 113.0.5672.92`,
+                labels: ["bug"]
+              },
+              {
+                title: "Clarification request for GHES usage",
+                body: `**Originally filed by:** @twuytens\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/65\n\n---\n\nWe are using this app for our GHES servers and are seeing some discrepancies in some of the dashboard we'd like to get clarification on. Currently we're on GHES 3.8.2.\n\n- In the \`github_app_for_splunk/2_process_monitor\` view the bottom 4 dashboard panels remain empty. It seems these are referencing metrics that are not available in our collectd data?\n  - processes.ps_disk_ops.read/write\n  - processes.ps_storage_octets.read/write\n\n- In the \`3_authentication_monitor\` view it seems there is an issue with the metric names containing forward slashes '/'? Looking for \`statsd.gauge.github/auth/result/*/*.value\` but we have \`statsd.gauge.github_auth_result_*_*\`. To make these panels work we need to change the slashes to underscores.\n\n- In the different \`audit\` view(s) we notice that the \`action=*\` filter is not working as expected. Field extractions are not working correctly with GHES audit log data and we need to include \"\`github_source\` action | spath input=message\" to all the queries to make it work.\n\n- In the \`workflow overview\` view, field names are different in GHES data as well? \`workflow_job.name, workflow_job.id\` are not available, but we do have \`workflow_run.name, workflow_run.id\`.\n\nNext to this, really loving the insights we get from this app. ❤️`,
+                labels: []
+              },
+              {
+                title: "External Collaborators Dashboards",
+                body: `**Originally filed by:** @cchmc-by\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/63\n\n---\n\nThe user dashboards only display members of an organization and don't include outside collaborators.\n\nIt would be very useful to see external collaborators, either on the same dashboard or a separate one. This would improve license and user management.\n\nThe Splunk Add-On For GitHub doesn't currently populate this data. I was hoping to find the repository for that app so I could request this feature there but haven't been able to find it. If this is the wrong place for this request, feel free to let me know and I can create it in the correct location. Thanks`,
+                labels: ["enhancement"]
+              },
+              {
+                title: "Dashboards are empty but data is being ingested into Splunk",
+                body: `**Originally filed by:** @brodgers-df\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/62\n\n---\n\nSimilar to issue https://github.com/splunk/github_app_for_splunk/issues/56 and https://github.com/splunk/github_app_for_splunk/issues/58\n\nI'm getting a very similar issue as previous reported. I have configured the GitHub Add-on For Splunk to ingest audit and user events as well as configured webhooks to capture events to the github index in Splunk. I can manually search the data and it's coming in from GitHub, but the Repository Audit and User Change Audit dashboards have none of the expected data. \n\nI have verified the macro are pointing to the correct indexes, everything looks good and as per documentation.\n\nI have the following installed:\nSplunk Enterprise 8.2.9\nApps:\nSplunk Add-on for Github 2.1.1\nGitHub App for Splunk 2.1.1`,
+                labels: []
+              },
+              {
+                title: "Documentation Suggestion: Use Basic Auth for webhook HEC token",
+                body: `**Originally filed by:** @dave-safian-kyndryl\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/60\n\n---\n\nIn regards to configuring webhooks in github (github_webhooks.MD) you can use basic auth instead.\n\nAdvantages: HEC token isn't passed as part of the URL (which is visible and will get logged everywhere). Does not require allowQueryStringAuth = true on the HEC Endpoint. In Splunk Cloud, you gotta get Splunk support to enable it even.\n\nAll that needs to change in the webhook configuration is:\n\nAuthQueryToken:\nhttps://YOUR_SPLUNK_URL:8088/services/collector/raw?token=THE_TOKEN_FROM_ABOVE\n\nBasicAuth:\nhttps://xxxxx:THETOKENFROMABOVE@YOUR_SPLUNK_URL:8088/services/collector/raw\n\nUsername doesn't matter (xxxxx). Token is used as the password for basic auth.`,
+                labels: ["enhancement"]
+              },
+              {
+                title: "Actions billback metrics",
+                body: `**Originally filed by:** @josepalafox\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/57\n\n---\n\n**Is your feature request related to a problem? Please describe.**\nCustomers would like a way to understand cost of hosted runners on a per repo, per label, per organization level to do billback.\n\n**Describe the solution you'd like**\nA way to view total actions minutes used in a week/month/year per repo, including metadata about the hosted runner type (eg 2core/4core/Mac/etc.)\n\nhttps://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions\n\nMay need additional checks for persistent storage.\n\n**Describe alternatives you've considered**\n\n**Additional context**\n`,
+                labels: ["enhancement"]
+              },
+              {
+                title: "Include push protection notifications in the Secret Scanning dashboard",
+                body: `**Originally filed by:** @leftrightleft\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/54\n\n---\n\nSecret scanning push protection (https://github.blog/2022-04-04-push-protection-github-advanced-security/) is a recently released service included with GHAS which stops secrets from being written to GitHub. This service blocks git pushes when a commit within that push contains a secret.\n\nWhen a push protection event occurs, a webhook is generated. This webhook should be used to populate a new chart in the Secret Scanning overview dashboard which gives counts of push protection block events.`,
+                labels: ["enhancement"]
+              },
+              {
+                title: "generate_user_access_lookup is scheduled, but no lookup named last_access_by_user exists",
+                body: `**Originally filed by:** @larrys\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/53\n\n---\n\n**Describe the bug**\nThis tripped an alert of mine that looks for errors with SavedSplunker in the internal logs\n\n**To Reproduce**\nInstall app, and wait 24 hours for scheduled search to get triggered, and look in internal logs for failures.\n\n**Expected behavior**\nThe app should ship with a transforms.conf entry with the lookup to generate it.`,
+                labels: ["bug"]
+              },
+              {
+                title: "Dependabot Alerts (and other dashboards) from Github Cloud enterprise not showing results due to bad SPL",
+                body: `**Originally filed by:** @NeilJed\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/50\n\n---\n\n**Describe the bug**\nData for dependabot alerts gathered from Github Webhooks returns no results despite their being data in the index.\n\n**To Reproduce**\nSteps to reproduce the behavior:\n1. Set-up a Github Webhook to push to Splunk via HEC as per the instructions\n2. View Dependabot Alerts under the Advanced Security tab\n\n**Expected behavior**\nData related to dependabot alerts should be shown, there is nothing shown.\n\n**Desktop (please complete the following information):**\n - OS: OSX 12.4\n - Browser: Brave\n - Version: 1.39.122\n\n**Additional context**\nThe issue is due to the fact that the events sent in the Webhook do not contain an "eventtype" field which is the first field the base search filters on hence it gets no results.\n\nTo fix it, for Github Cloud at least, I had to change base search to match on the valid actions values:\n\n\`\`\`\n\`github_webhooks\` action IN ("create", "dismiss", "resolve") | where isnotnull("action.id") | eval action='action',...\n\`\`\`\n\nThis seems to be a persistent problem with a lot of the other dashboards that the basesearch is looking for some qualifier that doesn't exist.`,
+                labels: ["bug"]
+              },
+              {
+                title: "Dashboard Audit: \"Activity Map by Actor Location\" and \"Activity Count by Actor Location\" not showing up",
+                body: `**Originally filed by:** @indreshgithub1\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/49\n\n---\n\n**Describe the bug**\nDo you have any suggestions or troubleshooting steps why "Audit Log Activity" is not showing any data? It seems existing SPL is not working.\n\n**"Activity Map by Actor Location" and "Activity Count by Actor Location"** are not showing any data.\nAre there any additional steps needed from our end?\n\n**To Reproduce**\nSteps to reproduce the behavior: Navigate to the Audit Log Activity dashboard and observe the empty Activity Map and Activity Count panels.\n\n**Expected behavior**\nAs per splunk https://splunkbase.splunk.com/app/5596/ - the Activity Map and Activity Count dashboards should populate with data.\n\n**Desktop (please complete the following information):**\n - Browser: Chrome/Safari`,
+                labels: ["bug"]
+              },
+              {
+                title: "Deeper Backlog Analytics",
+                body: `**Originally filed by:** @derkkila-splunk\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/15\n\n---\n\n**Is your feature request related to a problem? Please describe.**\nBetter understanding the Backlog is critical, having a dashboard that reports on status and age of work items is critical.\n\n**Describe the solution you'd like**\nA dashboard that includes items like oldest backlog item, average backlog age, count of items in each development step (accepted, working, merging, reviewing, testing, pending).`,
+                labels: ["enhancement"]
+              },
+              {
+                title: "Add Developer Insights Dashboards to include DORA metrics",
+                body: `**Originally filed by:** @derkkila-splunk\n**Original issue:** https://github.com/splunk/github_app_for_splunk/issues/6\n\n---\n\n**Is your feature request related to a problem? Please describe.**\nA clear and concise description of what the problem is.\n\n**Describe the solution you'd like**\nA clear and concise description of what you want to happen.\n\n**Describe alternatives you've considered**\nA clear and concise description of any alternative solutions or features you've considered.\n\n**Additional context**\nAdd any other context or screenshots about the feature request here.`,
+                labels: ["enhancement"]
+              }
+            ];
+
+            let created = 0;
+            for (const issue of issues) {
+              try {
+                const params = {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: issue.title,
+                  body: issue.body,
+                };
+                if (issue.labels && issue.labels.length > 0) {
+                  params.labels = issue.labels;
+                }
+                const result = await github.rest.issues.create(params);
+                console.log(`Created #${result.data.number}: ${issue.title}`);
+                created++;
+                // Small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 500));
+              } catch (error) {
+                console.error(`Failed to create "${issue.title}": ${error.message}`);
+              }
+            }
+            console.log(`\nTotal issues created: ${created} of ${issues.length}`);
