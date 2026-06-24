@@ -24,9 +24,9 @@ jobs:
                 old_str="X.Y.Z"
                 new_str=$(echo "${GITHUB_REF#refs/*/}" | tr -d "v")
                 sed -i "s/$old_str/$new_str/g" package.json
-                sed -i "s/$old_str/$new_str/g" ./github_app_for_splunk/default/app.conf
+                sed -i "s/$old_str/$new_str/g" ./github_dashboard_collection/default/app.conf
                 cat package.json
-                cat ./github_app_for_splunk/default/app.conf
+                cat ./github_dashboard_collection/default/app.conf
             - name: Install dependencies
               run: yarn install
               env:
@@ -34,14 +34,14 @@ jobs:
             - name: Build app package
               run: |
                   yarn package
-                  mv dist/*.spl dist/github_app_for_splunk.spl
+                  mv dist/*.spl dist/github_dashboard_collection.spl
             - uses: actions/upload-artifact@v4
               with:
                   name: app-package
-                  path: dist/github_app_for_splunk.spl
+                  path: dist/github_dashboard_collection.spl
             - uses: ./.github/actions/appinspect_api
               with:
-                  filePath: ./dist/github_app_for_splunk.spl
+                  filePath: ./dist/github_dashboard_collection.spl
                   splunkUser: ${{ secrets.SPLUNKBASE_USER }}
                   splunkPassword: ${{ secrets.SPLUNKBASE_PASSWORD }}
                   includedTags: cloud
@@ -49,13 +49,13 @@ jobs:
               uses: fnkr/github-action-ghr@v1
               if: startsWith(github.ref, 'refs/tags/')
               env:
-                  GHR_PATH: ./dist/github_app_for_splunk.spl
+                  GHR_PATH: ./dist/github_dashboard_collection.spl
                   GITHUB_TOKEN: ${{ secrets.API_TOKEN }}
             - name: Publish App to Splunkbase
               uses: ./.github/actions/appinspect_publish # Uses an action in the root directory
               with:
-                APP_ID: '5596'
-                APP_FILE: './dist/github_app_for_splunk.spl'
+                APP_ID: '8703'
+                APP_FILE: './dist/github_dashboard_collection.spl'
                 SPLUNK_USERNAME: ${{ secrets.SPLUNKBASE_USER }}
                 SPLUNK_PASSWORD: ${{ secrets.SPLUNKBASE_PASSWORD }}
                 SPLUNK_VERSION: '8.0,8.1,8.2,9.0'

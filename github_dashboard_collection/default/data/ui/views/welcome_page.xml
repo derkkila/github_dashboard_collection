@@ -12,7 +12,7 @@
           }
         </style>
         <div class="welcome-header">
-          <h1>Welcome to the GitHub App for Splunk!</h1>
+          <h1>Welcome to the GitHub Dashboard Collection!</h1>
           <p>
             This Splunk app is meant to be your single pane of glass for anything GitHub. Whether you're looking for audit log analytics, GitHub Enterprise Server monitoring, or other GitHub metrics, you're in the right place!
           </p>
@@ -87,8 +87,8 @@
           <p>
             GitHub has several ways to collect data from their services depending on your needs.
             <ol>
-              <li><a href="https://github.com/splunk/github_app_for_splunk/blob/main/docs/ghe_audit_logs.MD" target="_blank">Audit Log</a> data is available through a Splunk Add-On</li>
-              <li><a href="https://github.com/splunk/github_app_for_splunk/blob/main/docs/github_webhooks.MD" target="_blank">Rich commit, pull request, and Code Scanning</a> data is available through GitHub Webhooks</li>
+              <li><a href="https://github.com/derkkila/github_dashboard_collection/blob/main/docs/ghe_audit_logs.MD" target="_blank">Audit Log</a> data is available through a Splunk Add-On</li>
+              <li><a href="https://github.com/derkkila/github_dashboard_collection/blob/main/docs/github_webhooks.MD" target="_blank">Rich commit, pull request, and Code Scanning</a> data is available through GitHub Webhooks</li>
             </ol>
           </p>
         </div>

@@ -101,7 +101,7 @@ require([
         this._TableView.on("click", function(e) {
             e.preventDefault();
             console.log(e);
-            window.open("/app/github_app_for_splunk/workflow_details?form.workflow_id="+workflowIDCell.value+"&form.repoName="+repoNameCell.value+"&form.workflowName="+workflowName.value+"&form.field1.earliest=-24h%40h&form.field1.latest=now&form.timeRange.earliest=-30d%40d&form.timeRange.latest=now&form.workflowCount=25",'_self');
+            window.open("/app/github_dashboard_collection/workflow_details?form.workflow_id="+workflowIDCell.value+"&form.repoName="+repoNameCell.value+"&form.workflowName="+workflowName.value+"&form.field1.earliest=-24h%40h&form.field1.latest=now&form.timeRange.earliest=-30d%40d&form.timeRange.latest=now&form.workflowCount=25",'_self');
         });
 
         this._searchManager.set({ search: '`github_webhooks` (workflow_run.id='+workflowIDCell.value+' OR workflow_job.run_id='+workflowIDCell.value+') | eval started=if(action=="requested", _time, null), completed=if(action=="completed", _time,null) | stats latest(workflow_run.conclusion) as Status, earliest(started) as Started, latest(completed) as Completed, latest(workflow_run.head_branch) as Branch, latest(workflow_run.event) as Trigger | eval Duration=tostring(Completed-Started, "Duration") | eval Started=strftime(Started,"%Y-%m-%dT%H:%M:%S"), Completed=strftime(Completed,"%Y-%m-%dT%H:%M:%S")| fields Status, Started, Completed, Duration, Branch, Trigger | eval Details="Click here for Workflow Details" | transpose|rename column AS Details| rename "row 1" AS values'});
@@ -126,7 +126,7 @@ require([
     mycustomrowtable.on("click", function(e) {
        e.preventDefault();
        console.log(e.data);
-       window.open("/app/github_app_for_splunk/workflow_details?form.repoName="+e.data["row.repository.full_name"]+"&form.workflowName="+e.data["row.workflow_job.name"]+"&form.field1.earliest=-24h%40h&form.field1.latest=now&form.timeRange.earliest=-30d%40d&form.timeRange.latest=now&form.workflowCount=25",'_blank');
+       window.open("/app/github_dashboard_collection/workflow_details?form.repoName="+e.data["row.repository.full_name"]+"&form.workflowName="+e.data["row.workflow_job.name"]+"&form.field1.earliest=-24h%40h&form.field1.latest=now&form.timeRange.earliest=-30d%40d&form.timeRange.latest=now&form.workflowCount=25",'_blank');
     });
 
 });
