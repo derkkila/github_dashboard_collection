@@ -6,6 +6,10 @@ on:
     types:
       - completed
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
   ExportTrace:
     runs-on: ubuntu-latest
@@ -16,8 +20,8 @@ jobs:
       - name: Export workflow run to Splunk Observability Cloud
         uses: corentinmusard/otel-cicd-action@v2
         with:
-          otlpEndpoint: https://ingest.${{ vars.SFX_REALM }}.signalfx.com/otlp
+          otlpEndpoint: https://ingest.${{ secrets.SFX_REALM }}.signalfx.com/otlp
           otlpHeaders: "X-SF-Token=${{ secrets.SPLUNK_ACCESS_TOKEN }}"
           otelServiceName: github_dashboard_collection
-          githubToken: ${{ secrets.API_TOKEN }}
+          githubToken: ${{ github.token }}
           runId: ${{ github.event.workflow_run.id }}
