@@ -59,6 +59,21 @@ There is an *Integration Overview* dashboard listed under *Dashboards* that allo
 
 </details>
 
+## Workflow Tracing to Splunk Observability Cloud
+
+The [`otel_trace_to_o11y.yml`](./.github/workflows/otel_trace_to_o11y.yml) workflow exports each completed GitHub Actions workflow run to [Splunk Observability Cloud](https://www.splunk.com/en_us/products/observability-cloud.html) as an OpenTelemetry (OTel) trace, giving you APM-style visibility into CI/CD run and job durations. It triggers on the completion of any workflow (skipping itself and the log-shipping workflow to avoid noise and loops).
+
+This is **separate from** the HEC log pipeline in [`log_to_splunk.yml`](./.github/workflows/log_to_splunk.yml): traces go to Observability Cloud (APM), while logs go to a Splunk platform HEC endpoint.
+
+To enable it, configure the following under **Settings → Secrets and variables → Actions**:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `SPLUNK_ACCESS_TOKEN` | Secret | A Splunk Observability Cloud ingest/access token. This is **distinct** from the `HEC_TOKEN` used by the log pipeline. |
+| `SFX_REALM` | Variable | Your Observability Cloud realm, e.g. `us0`, `us1`, or `eu0`. Used to build the OTLP endpoint `https://ingest.<SFX_REALM>.signalfx.com/otlp`. |
+
+The workflow also reuses the existing `API_TOKEN` secret to read the workflow run from the GitHub API.
+
 ## Support
 
 Support for GitHub App for Splunk is run through [GitHub Issues](https://github.com/splunk/github_app_for_splunk/issues). Please open a new issue for any support issues or for feature requests. You may also open a Pull Request if you'd like to contribute additional dashboards, eventtypes for webhooks, or enhancements you may have.
