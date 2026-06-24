@@ -7,6 +7,10 @@ on:
     types:
       - completed
 
+permissions:
+  actions: read
+  contents: read
+
 env:
   triggerID: ${{ github.event.workflow_run.id }}
   triggerJob: ${{ github.event.workflow_run.name }}
@@ -28,6 +32,6 @@ jobs:
         with:
           splunk-url: ${{ secrets.HEC_URL }}
           hec-token: ${{ secrets.HEC_TOKEN }}
-          github-token: ${{ secrets.API_TOKEN }}
+          github-token: ${{ github.token }}
           workflowID: ${{ env.triggerID }}
           source: ${{ env.triggerJob }}
