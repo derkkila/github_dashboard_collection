@@ -21,7 +21,7 @@ jobs:
     if: ${{ github.event.workflow_run.name!='WriteLogs'}}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Output Job ID
         run: echo ${{ github.event.workflow_run.id }}
