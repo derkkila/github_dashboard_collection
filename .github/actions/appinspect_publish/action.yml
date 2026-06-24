@@ -4,7 +4,7 @@ inputs:
   APP_ID:
     description: 'App ID From Splunkbase'
     required: true
-    default: '5596'
+    default: '8703'
   SPLUNK_USERNAME:
     description: 'Splunkbase Username'
     required: true
