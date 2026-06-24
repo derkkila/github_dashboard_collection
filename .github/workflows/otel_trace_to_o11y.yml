@@ -23,5 +23,6 @@ jobs:
           otlpEndpoint: https://ingest.${{ secrets.SFX_REALM }}.signalfx.com/v2/trace/otlp
           otlpHeaders: "X-SF-Token=${{ secrets.SPLUNK_ACCESS_TOKEN }}"
           otelServiceName: github_dashboard_collection
+          extraAttributes: "deployment.environment=github-actions"
           githubToken: ${{ github.token }}
           runId: ${{ github.event.workflow_run.id }}
