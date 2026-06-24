@@ -4,8 +4,8 @@
     <query>
     `github_webhooks` alert.created_at=*
     | eval type=case((eventtype="GitHub::CodeScanning"), "Code Scanning Alert", (eventtype="GitHub::VulnerabilityAlert"), "Dependabot Alert", (eventtype="GitHub::SecretScanning"), "Secret Scanning Alert")
-    | eval url=case((eventtype="GitHub::CodeScanning"), 'alert.html_url', (eventtype="GitHub::VulnerabilityAlert"), 'repository.html_url'+"/security/dependabot/"+'alert.number', (eventtype="GitHub::SecretScanning"), 'alert.html_url')
-    | eval reason=case((type="Dependabot Alert"),'alert.affected_package_name',(type="Code Scanning Alert"), 'alert.rule.name', (type="Secret Scanning Alert"), 'alert.secret_type'), id=case((type="Dependabot Alert"),'alert.external_identifier',(type="Code Scanning Alert"), 'alert.rule.id', (type="Secret Scanning Alert"), 'alert.number'), severity=case((type="Dependabot Alert"),'alert.severity',(type="Code Scanning Alert"), 'alert.rule.security_severity_level', (type="Secret Scanning Alert"), "high"), repository = 'repository.full_name'
+    | eval url=case((eventtype="GitHub::CodeScanning"), 'alert.html_url', (eventtype="GitHub::VulnerabilityAlert"), coalesce('alert.html_url', 'repository.html_url'."/security/dependabot/".'alert.number'), (eventtype="GitHub::SecretScanning"), 'alert.html_url')
+    | eval reason=case((type="Dependabot Alert"),coalesce('alert.affected_package_name','alert.dependency.package.name'),(type="Code Scanning Alert"), 'alert.rule.name', (type="Secret Scanning Alert"), 'alert.secret_type'), id=case((type="Dependabot Alert"),coalesce('alert.external_identifier','alert.security_advisory.ghsa_id'),(type="Code Scanning Alert"), 'alert.rule.id', (type="Secret Scanning Alert"), 'alert.number'), severity=case((type="Dependabot Alert"),coalesce('alert.severity','alert.security_vulnerability.severity'),(type="Code Scanning Alert"), 'alert.rule.security_severity_level', (type="Secret Scanning Alert"), "high"), repository = 'repository.full_name'
     | stats latest(action) as status, earliest(alert.created_at) as created_at, latest(alert.number) as number by repository, reason, id, type, severity, url
     | eval source=type
     | eval age = toString(round(now() - strptime(created_at, "%Y-%m-%dT%H:%M:%S")),"Duration")
@@ -46,7 +46,7 @@
       <title>Open Alerts By Severity</title>
       <chart>
         <search base="baseSearch">
-          <query> | search status IN("create","created") | stats count by severity</query>
+          <query> | search status IN("create","created","reopened","auto_reopened","reintroduced") | stats count by severity</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -89,7 +89,7 @@
       <title>Open Alerts By Repository</title>
       <chart>
         <search base="baseSearch">
-          <query>| search status IN("create","created") | stats count by repository</query>
+          <query>| search status IN("create","created","reopened","auto_reopened","reintroduced") | stats count by repository</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -129,7 +129,7 @@
       <title>Open Alerts by Type</title>
       <chart>
         <search base="baseSearch">
-          <query>| search status IN("create","created") | stats count by type</query>
+          <query>| search status IN("create","created","reopened","auto_reopened","reintroduced") | stats count by type</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -168,7 +168,7 @@
       <title>Resolved Alert Count</title>
       <single>
         <search base="baseSearch">
-          <query>| search status IN("dismiss","resolve","resolved","closed_by_user","fixed")| stats count</query>
+          <query>| search status IN("dismiss","resolve","resolved","closed_by_user","fixed","dismissed","auto_dismissed")| stats count</query>
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">none</option>

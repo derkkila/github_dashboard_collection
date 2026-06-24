@@ -9,11 +9,11 @@ jobs:
     appinspect:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v1
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
               with:
                   node-version: 12.x
-            - uses: actions/cache@v1
+            - uses: actions/cache@v4
               with:
                   path: node_modules
                   key: nodeModules-${{ hashFiles('**/yarn.lock') }}
@@ -35,7 +35,7 @@ jobs:
               run: |
                   yarn package
                   mv dist/*.spl dist/github_app_for_splunk.spl
-            - uses: actions/upload-artifact@v1
+            - uses: actions/upload-artifact@v4
               with:
                   name: app-package
                   path: dist/github_app_for_splunk.spl

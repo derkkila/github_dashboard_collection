@@ -2,7 +2,7 @@
   <label>Dependabot Alerts</label>
   <search id="baseSearch">
     <query>
-      `github_webhooks` eventtype="GitHub::VulnerabilityAlert" | eval action='action', repository=if(isnotnull('repository.name'),'repository.name','unknown'), severity=if(isnotnull('alert.severity'),'alert.severity','none'), create_time=if(isnotnull('alert.created_at'),'alert.created_at','unknown'), received_time='_time', alert_url=if(isnotnull('alert.external_reference'),'alert.external_reference','unknown'), eventtype='eventtype', created=strptime(create_time, "%Y-%m-%dT%H:%M:%S%Z"), resolved_at=case('alert.dismissed_at' != "null", 'alert.dismissed_at', isnotnull('alert.fixed_at'), 'alert.fixed_at', isnotnull('alert.resolved_at'),'alert.resolved_at', 1=1, _time),  duration = toString(round(strptime(resolved_at, "%Y-%m-%dT%H:%M:%S") - strptime(create_time, "%Y-%m-%dT%H:%M:%S"))), duration_str=tostring(avg(duration), "duration")
+      `github_webhooks` eventtype="GitHub::VulnerabilityAlert" | eval action='action', repository=if(isnotnull('repository.name'),'repository.name','unknown'), severity=coalesce('alert.severity','alert.security_vulnerability.severity','none'), create_time=if(isnotnull('alert.created_at'),'alert.created_at','unknown'), received_time='_time', alert_url=coalesce('alert.html_url','alert.external_reference','unknown'), eventtype='eventtype', created=strptime(create_time, "%Y-%m-%dT%H:%M:%S%Z"), resolved_at=case('alert.dismissed_at' != "null", 'alert.dismissed_at', isnotnull('alert.fixed_at'), 'alert.fixed_at', isnotnull('alert.resolved_at'),'alert.resolved_at', isnotnull('alert.auto_dismissed_at'), 'alert.auto_dismissed_at', 1=1, _time),  duration = toString(round(strptime(resolved_at, "%Y-%m-%dT%H:%M:%S") - strptime(create_time, "%Y-%m-%dT%H:%M:%S"))), duration_str=tostring(avg(duration), "duration")
     </query>
     <earliest>$timeTkn.earliest$</earliest>
     <latest>$timeTkn.latest$</latest>
@@ -49,7 +49,7 @@
       <single>
         <title>Mean Time to Resolution (MTTR)</title>
         <search base="baseSearch">
-          <query>| search severity=$severity_label$ repository=$repoTkn$ action="resolve" 
+          <query>| search severity=$severity_label$ repository=$repoTkn$ action IN("resolve","fixed") 
           | eval age = avg(duration) 
           | appendpipe [ stats avg(age) as totalTime ]
           | eval mttr = toString(round(totalTime), "duration"), clean_mttr = replace (mttr , "\+" , " days, ")
@@ -66,7 +66,7 @@
       <single>
         <title>Created</title>
         <search base="baseSearch">
-          <query>| search severity=$severity_label$ repository=$repoTkn$ action="create" | stats count</query>
+          <query>| search severity=$severity_label$ repository=$repoTkn$ action IN("create","created","reopened","auto_reopened","reintroduced") | stats count</query>
         </search>
         <option name="drilldown">none</option>
         <option name="height">100</option>
@@ -78,7 +78,7 @@
       <single>
         <title>Fixed</title>
         <search base="baseSearch">
-          <query>| search severity=$severity_label$ repository=$repoTkn$ (action="resolve") | stats count</query>
+          <query>| search severity=$severity_label$ repository=$repoTkn$ action IN("resolve","fixed") | stats count</query>
         </search>
         <option name="drilldown">none</option>
         <option name="height">100</option>
@@ -89,7 +89,7 @@
       <single>
         <title>Dismissed</title>
         <search base="baseSearch">
-          <query>| search severity=$severity_label$ repository=$repoTkn$ (action="dismiss") | stats count</query>
+          <query>| search severity=$severity_label$ repository=$repoTkn$ action IN("dismiss","dismissed","auto_dismissed") | stats count</query>
         </search>
         <option name="drilldown">none</option>
         <option name="height">100</option>
@@ -102,13 +102,15 @@
       <chart>
         <title>Alert Found/Fixed Ratio</title>
         <search base="baseSearch">
-          <query>| search severity=$severity_label$ repository=$repoTkn$ (action=create OR action=resolve OR action=dismiss)
+          <query>| search severity=$severity_label$ repository=$repoTkn$ action IN("create","created","reopened","auto_reopened","reintroduced","resolve","fixed","dismiss","dismissed","auto_dismissed")
 | timechart count(_raw)  by action
-| accum create
-| accum resolve
-| rename create as "Found"
-| rename resolve as "Fixed"
-| rename dismiss as "Dismissed"</query>
+| eval Found=coalesce(create,0)+coalesce(created,0)+coalesce(reopened,0)+coalesce(auto_reopened,0)+coalesce(reintroduced,0)
+| eval Fixed=coalesce(resolve,0)+coalesce(fixed,0)
+| eval Dismissed=coalesce(dismiss,0)+coalesce(dismissed,0)+coalesce(auto_dismissed,0)
+| accum Found
+| accum Fixed
+| accum Dismissed
+| fields _time, Found, Fixed, Dismissed</query>
         </search>
         <option name="charting.axisTitleX.visibility">collapsed</option>
         <option name="charting.chart">line</option>
@@ -121,7 +123,7 @@
       <chart>
         <title>Vulnerabilities by Repo</title>
         <search base="baseSearch">
-          <query>| search severity=$severity_label$ repository=$repoTkn$ action=create | chart count by repository
+          <query>| search severity=$severity_label$ repository=$repoTkn$ action IN("create","created","reopened","auto_reopened","reintroduced") | chart count by repository
           </query>
         </search>
         <option name="charting.chart">pie</option>
@@ -135,7 +137,7 @@
       <chart>
         <title>New Alerts by Severity</title>
         <search base="baseSearch">
-          <query>| search severity=$severity_label$ repository=$repoTkn$ (action=create) | timechart count(_raw)  by severity</query>
+          <query>| search severity=$severity_label$ repository=$repoTkn$ action IN("create","created","reopened","auto_reopened","reintroduced") | timechart count(_raw)  by severity</query>
         </search>
         <option name="charting.chart">column</option>
         <option name="charting.chart.stackMode">stacked</option>
@@ -150,7 +152,7 @@
       <table>
         <title>Fixed Alerts</title>
         <search base="baseSearch">
-          <query> | search (action=resolve OR action=dismiss) repository=$repoTkn$ severity=$severity_label$
+          <query> | search action IN("resolve","fixed","dismiss","dismissed","auto_dismissed") repository=$repoTkn$ severity=$severity_label$
 | table action, repository, severity, alert_url,duration_str
 | rename action AS "Action", repository AS "Repository" duration_str AS "Time to Resolution",severity AS "Severity", alert_url AS "Alert URL"
 | sort -"Time to Resolution"
@@ -165,7 +167,7 @@
       <table>
         <title>Alerts by Repo</title>
         <search base="baseSearch">
-          <query>| search (action=create)  repository=$repoTkn$ severity=$severity_label$| chart usenull=f count over repository by severity</query>
+          <query>| search action IN("create","created","reopened","auto_reopened","reintroduced")  repository=$repoTkn$ severity=$severity_label$| chart usenull=f count over repository by severity</query>
         </search>
         <option name="drilldown">none</option>
         <option name="percentagesRow">false</option>
