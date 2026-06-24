@@ -74,6 +74,8 @@ To enable it, configure the following under **Settings → Secrets and variables
 
 To read the triggering workflow run from the GitHub API, the workflow uses the built-in `github.token` (granted `actions: read` and `contents: read` via the workflow's `permissions` block) — no additional token secret is required.
 
+The traces are tagged with the `deployment.environment` resource attribute `github-actions`, which Splunk APM maps to the **environment** of the same name. Look for the `github_dashboard_collection` service under the `github-actions` environment in APM. (Without this attribute, traces fall under the `unknown` environment.)
+
 ## Support
 
 Support for GitHub App for Splunk is run through [GitHub Issues](https://github.com/splunk/github_app_for_splunk/issues). Please open a new issue for any support issues or for feature requests. You may also open a Pull Request if you'd like to contribute additional dashboards, eventtypes for webhooks, or enhancements you may have.
