@@ -20,7 +20,12 @@ powers four reports:
 
 ### Required token scopes
 
-The PAT must be created by an **enterprise owner / billing manager** and include:
+> **Use a _classic_ personal access token.** The GitHub billing usage
+> endpoints do **not** support fine-grained PATs. A classic PAT created by an
+> enterprise owner or billing manager is required.
+
+The classic PAT must be created by an **enterprise owner / billing manager**
+and include:
 
 - `manage_billing:copilot` — read Copilot billing data
 - `read:enterprise` — read enterprise profile data
@@ -46,6 +51,14 @@ X-GitHub-Api-Version: 2022-11-28
 
 The base URL defaults to `https://api.github.com` and is configurable via
 `api_base_url` for GitHub Enterprise Server (`https://<host>/api/v3`).
+
+> **Why per-user usage is collected in a loop.** The unfiltered enterprise
+> `ai_credit/usage` response does **not** carry a per-item `user` field — the
+> top-level `user` is only populated when you filter with `?user={login}`.
+> There is no single bulk per-user call, so `collect_by_user` enumerates the
+> Copilot seats and issues one `ai_credit/usage?user={login}` request per user.
+> The **model** breakdown comes from the single unfiltered enterprise call,
+> where `model` is present on every `usageItems[]` entry.
 
 ## Storing the PAT (storage/passwords)
 
@@ -159,8 +172,9 @@ index=github sourcetype=github:copilot:billing:ai_credit
   matches the input `<name>` (or the app name). Check `splunkd.log` for
   `[<name>] no PAT found ...`.
 - **HTTP 403 / 404** — the token lacks `manage_billing:copilot`, is not an
-  enterprise admin/billing manager, or the AI-credit feature is not enabled for
-  the enterprise. 404s are skipped gracefully.
+  enterprise admin/billing manager, **is a fine-grained PAT (use a classic
+  PAT)**, or the AI-credit feature is not enabled for the enterprise. 404s are
+  skipped gracefully.
 - **HTTP 429 / rate limits** — handled automatically with `Retry-After` /
   `X-RateLimit-Reset` backoff.
 - **Validate offline** — run a self-test that exercises parsing, pagination, and

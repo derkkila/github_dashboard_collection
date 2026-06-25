@@ -4,8 +4,9 @@
 * ai_credit_by_user sourcetypes.
 * The personal access token (PAT) is NOT configured here. Store it in Splunk's
 * encrypted credential store (storage/passwords) with the realm set to this
-* input's <name> (or to the app name "github_dashboard_collection"). See
-* docs/copilot_billing_collection.MD for setup instructions.
+* input's <name> (or to the app name "github_dashboard_collection"). Use a
+* CLASSIC PAT; fine-grained PATs are not supported by the billing endpoints.
+* See docs/copilot_billing_collection.MD for setup instructions.
 
 enterprise = <string>
 * Required. The slug version of the GitHub enterprise name (for example
