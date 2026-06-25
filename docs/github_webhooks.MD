@@ -28,7 +28,7 @@ Instead of passing the token in the query string, you can authenticate with HTTP
 * The HEC token isn't included in the URL, where it can be logged by proxies, load balancers, and other intermediaries.
 * It doesn't require `allowQueryStringAuth = true`, so you can skip the `inputs.conf` change and Splunk restart above. (On Splunk Cloud, enabling query string auth requires a support request, so Basic Auth avoids that step entirely.)
 
-With Basic Auth, the username is ignored and the HEC token is used as the password. You'll use this when configuring the Payload URL in the next section. See [Splunk's HEC authentication documentation](https://docs.splunk.com/Documentation/Splunk/latest/Data/UsetheHTTPEventCollector#Send_data_to_HEC) for more detail.
+With Basic Auth, the username is ignored and the HEC token is used as the password. You'll use this when configuring the Payload URL in the next section. This is documented in Splunk's [Format events for HTTP Event Collector](https://docs.splunk.com/Documentation/Splunk/latest/Data/FormateventsforHTTPEventCollector) page, which shows the token can be supplied either in the `Authorization: Splunk <token>` header or via HTTP Basic Auth (for example, `curl -u "x:<token>"`).
 
 ### Setting Up GitHub Webhooks
 
