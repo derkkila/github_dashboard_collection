@@ -21,13 +21,24 @@ Your token is now available to collect data, however we'll need to enable that t
 
 To enable Query String Authentication, you'll need to update the `inputs.conf` file within the Splunk App for GitHub local directory. In that file, there will be a stanza with the name and value of the token you created. At the end of that stanza, you'll need to add `allowQueryStringAuth = true` and then restart Splunk. This is best done with the help of your Splunk team, so please reach out to them for assistance on this step.
 
+#### Alternative: HTTP Basic Authentication
+
+Instead of passing the token in the query string, you can authenticate with HTTP Basic Auth. This is often the better option because:
+
+* The HEC token isn't included in the URL, where it can be logged by proxies, load balancers, and other intermediaries.
+* It doesn't require `allowQueryStringAuth = true`, so you can skip the `inputs.conf` change and Splunk restart above. (On Splunk Cloud, enabling query string auth requires a support request, so Basic Auth avoids that step entirely.)
+
+With Basic Auth, the username is ignored and the HEC token is used as the password. You'll use this when configuring the Payload URL in the next section. See [Splunk's HEC authentication documentation](https://docs.splunk.com/Documentation/Splunk/latest/Data/UsetheHTTPEventCollector#Send_data_to_HEC) for more detail.
+
 ### Setting Up GitHub Webhooks
 
 Webhooks are a simple push mechanism that will send an event each time the webhook is triggered. Unfortunately, Webhooks are unique to each Organization and will need to be setup for each Org as desired. To do this, a user will need to be an Admin for the Org.
 
 1. In your GitHub Organization Settings page, select Webhooks from the menu on the left.
 1. On this page, you'll see all the existing Webhooks, click the **Add webhook** button to add one to send data to Splunk.
-1. The Payload URL will be the Splunk HTTP Event Collector endpoint that was enabled above. It should look something like: `https://YOUR SPLUNK URL:8088/services/collector/raw?token=THE TOKEN FROM ABOVE`. The default port of 8088 may be different for your Splunk Environment, so please confirm the HEC port with your Splunk Admin team.
+1. The Payload URL will be the Splunk HTTP Event Collector endpoint that was enabled above. The default port of 8088 may be different for your Splunk Environment, so please confirm the HEC port with your Splunk Admin team. Use whichever form matches the authentication method you chose above:
+   * **Query string token** (requires `allowQueryStringAuth = true`): `https://YOUR SPLUNK URL:8088/services/collector/raw?token=THE TOKEN FROM ABOVE`
+   * **HTTP Basic Auth** (no `allowQueryStringAuth` needed): `https://anyusername:THE TOKEN FROM ABOVE@YOUR SPLUNK URL:8088/services/collector/raw`. The username can be anything; the HEC token is used as the password.
 1. For Content Type, you'll want to select `application/json` as the best option.
 1. You can choose to send just `push` events, All events, or manually select specific events from the list available. However, only some events have related Splunk eventtypes available to differentiate them within Splunk. See the table of available eventtypes below.
 1. Once you click Add Webhook, a sample event will be triggered and it's status and response from the HTTP Event Collector should show below. Confirm that the response is OK. Otherwise triage as needed based on the HTTP Response provided.
