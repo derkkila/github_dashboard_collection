@@ -19,6 +19,9 @@
     <view name="workflow_analytics" />
     <view name="workflow_analysis" />
   </collection>
+  <collection label="Copilot Billing">
+    <view name="copilot_billing" />
+  </collection>
   <collection label="Config">
     <view source="all" match="config" />
   </collection>
