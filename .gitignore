@@ -184,3 +184,5 @@ tags
 .ionide
 
 .env
+# Splunk package build artifacts
+/dist/
