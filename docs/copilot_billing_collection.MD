@@ -60,14 +60,26 @@ The base URL defaults to `https://api.github.com` and is configurable via
 > The **model** breakdown comes from the single unfiltered enterprise call,
 > where `model` is present on every `usageItems[]` entry.
 
-## Storing the PAT (storage/passwords)
+## Providing the PAT
 
-The token is **never** stored in plaintext in a `.conf` file. Store it in
-Splunk's encrypted credential store with the **realm set to the input name**
-(the `<name>` part of the stanza), or to the app name
-`github_dashboard_collection`.
+The token is **never** stored in plaintext in a `.conf` file. The add-on keeps
+it in Splunk's encrypted credential store (`storage/passwords`). There are two
+ways to get it there.
 
-### Option A — Splunk REST (recommended)
+### Option A, enter it in the input (recommended)
+
+Type the PAT into the input's **token** field, either in the example stanza you
+copy into `local/inputs.conf` or in Splunk Web under **Settings > Data inputs >
+GitHub Copilot Billing**. On the first run the modular input moves that value
+into `storage/passwords` (realm = the stanza `<name>`) and rewrites the `token`
+field to `<encrypted>`, so the secret never lingers in clear text. Leave the
+field blank (or masked) on later edits to keep using the stored token.
+
+### Option B, store it directly via REST (advanced)
+
+If you would rather not put the token in the stanza at all, create the
+credential out of band with the **realm set to the input name** (the `<name>`
+part of the stanza), or to the app name `github_dashboard_collection`:
 
 ```
 curl -k -u admin:<splunk-password> \
@@ -77,23 +89,16 @@ curl -k -u admin:<splunk-password> \
   -d realm=customer-success-architects-ea-sandbox
 ```
 
-Set `realm` to the `<name>` of your modular input stanza (for the example input
-that is `customer-success-architects-ea-sandbox`). The `name` (username) can be
-anything; the input reads the first credential found under the matching realm.
-
-### Option B — Splunk Web
-
-Settings → **Credentials** (or the app's setup page) → add a credential with
-the realm equal to your input name and paste the PAT as the password.
-
-The input looks up the credential by realm at run time, so the token stays
-encrypted at rest and never appears in `default/` or `local/`.
+The `name` (username) can be anything; the input reads the first credential
+found under the matching realm. Either way the token stays encrypted at rest and
+never appears in `default/`.
 
 ## Enabling the input
 
 1. Edit (or copy) the example stanza in `default/inputs.conf` into
    `local/inputs.conf`, set your `enterprise` slug, and remove `disabled = true`.
-2. Store the PAT as described above (realm = the stanza `<name>`).
+2. Provide the PAT (Option A or B above). For Option A, set `token = <your PAT>`
+   in the stanza; it is encrypted and masked on the first run.
 3. Choose what to collect with `collect_budgets`, `collect_ai_credit`, and
    `collect_by_user`, and set the `interval` (a daily `86400` is recommended).
 4. On the first run the input backfills from `start_date` (or `lookback_days`,
@@ -105,6 +110,7 @@ Example `local/inputs.conf`:
 ```
 [github_copilot_billing://customer-success-architects-ea-sandbox]
 enterprise = customer-success-architects-ea-sandbox
+# token = ghp_...   (encrypted into storage/passwords and masked on first run)
 api_base_url = https://api.github.com
 collect_budgets = true
 collect_ai_credit = true
@@ -168,9 +174,10 @@ index=github sourcetype=github:copilot:billing:ai_credit
 
 ## Troubleshooting
 
-- **No PAT found** — confirm a `storage/passwords` entry exists whose realm
-  matches the input `<name>` (or the app name). Check `splunkd.log` for
-  `[<name>] no PAT found ...`.
+- **No PAT available** — set `token` in the input (it is encrypted on the next
+  run), or confirm a `storage/passwords` entry exists whose realm matches the
+  input `<name>` (or the app name). Check `splunkd.log` for `[<name>] no PAT
+  available ...`.
 - **HTTP 403 / 404** — the token lacks `manage_billing:copilot`, is not an
   enterprise admin/billing manager, **is a fine-grained PAT (use a classic
   PAT)**, or the AI-credit feature is not enabled for the enterprise. 404s are

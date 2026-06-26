@@ -39,6 +39,10 @@ from splunklib.modularinput import Argument, Event, Scheme, Script
 APP_NAME = "github_dashboard_collection"
 KIND = "github_copilot_billing"
 
+# Placeholder written back into inputs.conf after a typed-in token has been
+# moved to storage/passwords, so the secret never lingers in clear text.
+CREDENTIAL_MASK = "<encrypted>"
+
 SOURCETYPE_BUDGET = "github:copilot:billing:budget"
 SOURCETYPE_AI_CREDIT = "github:copilot:billing:ai_credit"
 SOURCETYPE_AI_CREDIT_BY_USER = "github:copilot:billing:ai_credit_by_user"
@@ -268,16 +272,12 @@ class Checkpoint:
 # Credential lookup (Splunk storage/passwords)
 # ---------------------------------------------------------------------------
 
-def get_token_from_storage(session_key, server_uri, realm, app=APP_NAME):
-    """Read the PAT from Splunk's encrypted credential store.
-
-    Looks for a storage/passwords entry whose realm matches the input name
-    (preferred) or the app name. Returns the clear-text password, or None.
-    """
+def _connect_service(session_key, server_uri, app=APP_NAME):
+    """Open a splunklib client.Service against the local management port."""
     import splunklib.client as client
 
     parts = urllib.parse.urlsplit(server_uri or "https://127.0.0.1:8089")
-    service = client.Service(
+    return client.Service(
         scheme=parts.scheme or "https",
         host=parts.hostname or "127.0.0.1",
         port=parts.port or 8089,
@@ -285,7 +285,68 @@ def get_token_from_storage(session_key, server_uri, realm, app=APP_NAME):
         owner="nobody",
         app=app,
     )
+
+
+def resolve_token(session_key, server_uri, input_name, stanza_name, stanza, log):
+    """Return the PAT for an input, handling the encrypt-on-first-run flow.
+
+    If the operator typed a token into the input's ``token`` field, it is moved
+    into Splunk's encrypted credential store (storage/passwords, realm = input
+    name) and the field in inputs.conf is masked so the secret never lingers in
+    clear text. On subsequent runs the field is blank or masked and the token is
+    read back from storage/passwords. A credential created out of band (realm =
+    input name or app name) still works for backward compatibility.
+    """
+    try:
+        service = _connect_service(session_key, server_uri)
+    except Exception as err:  # noqa: BLE001 - report and skip this input
+        log("ERROR", "could not connect to splunkd to read credentials: %s" % err)
+        return None
+
+    raw = (stanza.get("token") or "").strip()
+    if raw and raw != CREDENTIAL_MASK:
+        try:
+            _store_password(service, input_name, input_name, raw)
+            _mask_input_token(service, stanza_name, log)
+            log("INFO", "encrypted PAT into storage/passwords (realm '%s') and "
+                "masked the input field" % input_name)
+        except Exception as err:  # noqa: BLE001 - still usable for this run
+            log("WARN", "could not persist PAT to storage/passwords (%s); using "
+                "the typed-in value for this run only" % err)
+        return raw
+
+    return _select_password(service.storage_passwords, input_name, APP_NAME)
+
+
+def get_token_from_storage(session_key, server_uri, realm, app=APP_NAME):
+    """Read the PAT from Splunk's encrypted credential store.
+
+    Looks for a storage/passwords entry whose realm matches the input name
+    (preferred) or the app name. Returns the clear-text password, or None.
+    """
+    service = _connect_service(session_key, server_uri, app)
     return _select_password(service.storage_passwords, realm, app)
+
+
+def _store_password(service, realm, username, password):
+    """Create or replace a storage/passwords entry for (realm, username)."""
+    for sp in service.storage_passwords:
+        if (getattr(sp, "realm", "") or "") == realm and \
+                (getattr(sp, "username", "") or "") == username:
+            service.storage_passwords.delete(username=username, realm=realm)
+            break
+    service.storage_passwords.create(password, username, realm)
+
+
+def _mask_input_token(service, stanza_name, log):
+    """Overwrite the clear-text token field in inputs.conf with a mask."""
+    kind, _, name = stanza_name.partition("://")
+    try:
+        item = service.inputs[name, kind]
+        item.update(token=CREDENTIAL_MASK).refresh()
+    except Exception as err:  # noqa: BLE001 - masking is best-effort
+        log("WARN", "could not mask 'token' in inputs.conf for [%s]: %s"
+            % (stanza_name, err))
 
 
 def _select_password(storage_passwords, realm, app):
@@ -494,6 +555,16 @@ class GithubCopilotBilling(Script):
         api_base.required_on_create = False
         scheme.add_argument(api_base)
 
+        token = Argument("token")
+        token.title = "GitHub PAT (classic)"
+        token.description = ("Classic personal access token with "
+                             "manage_billing:copilot. Encrypted into "
+                             "storage/passwords on first run and masked here "
+                             "afterwards. Leave blank to reuse the stored token.")
+        token.data_type = Argument.data_type_string
+        token.required_on_create = False
+        scheme.add_argument(token)
+
         for name, title in (
                 ("collect_budgets", "Collect budgets"),
                 ("collect_ai_credit", "Collect AI credit usage"),
@@ -557,12 +628,12 @@ class GithubCopilotBilling(Script):
                 ew.log(level, "[%s] %s" % (_name, msg))
 
             try:
-                self._run_input(inputs, ew, input_name, stanza, log)
+                self._run_input(inputs, ew, input_name, stanza_name, stanza, log)
             except Exception as err:  # noqa: BLE001 - report and keep other inputs alive
                 ew.log(ew.ERROR if hasattr(ew, "ERROR") else "ERROR",
                        "[%s] collection failed: %s" % (input_name, err))
 
-    def _run_input(self, inputs, ew, input_name, stanza, log):
+    def _run_input(self, inputs, ew, input_name, stanza_name, stanza, log):
         enterprise = (stanza.get("enterprise") or "").strip()
         if not enterprise:
             log("ERROR", "missing 'enterprise'; skipping")
@@ -581,10 +652,12 @@ class GithubCopilotBilling(Script):
 
         session_key = inputs.metadata.get("session_key")
         server_uri = inputs.metadata.get("server_uri")
-        token = get_token_from_storage(session_key, server_uri, input_name)
+        token = resolve_token(session_key, server_uri, input_name,
+                              stanza_name, stanza, log)
         if not token:
-            log("ERROR", "no PAT found in storage/passwords for realm '%s' (or "
-                "app '%s'); store the token then re-run" % (input_name, APP_NAME))
+            log("ERROR", "no PAT available: enter one in the input's 'token' "
+                "field, or store it in storage/passwords (realm '%s' or app "
+                "'%s'), then re-run" % (input_name, APP_NAME))
             return
 
         client = GitHubBillingClient(token, api_base_url, logger=log)

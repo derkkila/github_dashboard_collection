@@ -2,15 +2,22 @@
 * Collects GitHub Copilot AI-credit billing and usage data for a GitHub
 * enterprise and indexes it in Splunk. Feeds the budget, ai_credit and
 * ai_credit_by_user sourcetypes.
-* The personal access token (PAT) is NOT configured here. Store it in Splunk's
-* encrypted credential store (storage/passwords) with the realm set to this
-* input's <name> (or to the app name "github_dashboard_collection"). Use a
-* CLASSIC PAT; fine-grained PATs are not supported by the billing endpoints.
+* Enter the personal access token (PAT) in the "token" field below. On the
+* first run it is moved into Splunk's encrypted credential store
+* (storage/passwords, realm = this input's <name>) and the field is masked, so
+* the secret is never left in clear text. Use a CLASSIC PAT; fine-grained PATs
+* are not supported by the billing endpoints.
 * See docs/copilot_billing_collection.MD for setup instructions.
 
 enterprise = <string>
 * Required. The slug version of the GitHub enterprise name (for example
 * customer-success-architects-ea-sandbox).
+
+token = <string>
+* Optional. A CLASSIC GitHub PAT with manage_billing:copilot and enterprise
+* admin / billing-manager access. Encrypted into storage/passwords on the
+* first run, then masked in this file. Leave blank to reuse the stored token,
+* or to supply the credential out of band via storage/passwords.
 
 api_base_url = <string>
 * Optional. Base URL of the GitHub REST API.
