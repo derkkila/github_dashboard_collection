@@ -9,6 +9,7 @@ The GitHub Dashboard Collection is designed to work with the following data sour
 * [GitHub Audit Log Collection](./docs/ghe_audit_logs.MD): Audit logs from GitHub Enterprise Cloud and Server.
 * [Github.com Webhooks](./docs/github_webhooks.MD): A select set of webhook events like Push, PullRequest, Code Scanning and Repo.
 * [Github Enterprise Collectd monitoring](./docs/splunk_collectd_forwarding_for_ghes.MD): Performance and Infrastructure metrics from Github Enterprise Server.
+* [GitHub Copilot Billing Collection](./docs/copilot_billing_collection.MD): Copilot AI-credit billing and usage data (budget pool, consumption over time, by user, and by model) via a modular input.
 
 ## Dashboard Instructions
 

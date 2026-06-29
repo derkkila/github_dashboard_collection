@@ -1,0 +1,327 @@
+<form version="1.1">
+  <label>Copilot AI Credit Billing</label>
+  <description>GitHub Copilot AI-credit budget, consumption, model mix, and per-user usage. Gross figures reflect nominal AI-credit consumption; net reflects post-discount billable amount.</description>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="timeRng">
+      <label>Billing date range</label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="budgetSku">
+      <label>Budget SKU</label>
+      <choice value="ai_credits">AI credits</choice>
+      <choice value="copilot">Copilot</choice>
+      <default>ai_credits</default>
+      <initialValue>ai_credits</initialValue>
+    </input>
+  </fieldset>
+
+  <!-- ===================== Row 1: Pool / budget KPIs ===================== -->
+  <row>
+    <panel>
+      <title>Allocation (latest budget snapshot)</title>
+      <single>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:budget" budget_product_sku="$budgetSku$"
+| stats latest(budget_amount) as budget_amount by enterprise scope budget_entity_name budget_product_sku
+| stats sum(budget_amount) as allocation</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="unit">credits</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0x0877a6"]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Gross consumption (selected period)</title>
+      <single>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| stats sum(grossAmount) as consumed</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="unit">credits</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x0877a6","0xf8be34"]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Percent of allocation used (selected period)</title>
+      <single>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| stats sum(grossAmount) as consumed
+| appendcols
+    [ search `github_source` sourcetype="github:copilot:billing:budget" budget_product_sku="$budgetSku$"
+      | stats latest(budget_amount) as budget_amount by enterprise scope budget_entity_name budget_product_sku
+      | stats sum(budget_amount) as allocation ]
+| eval pct=round((consumed/allocation)*100,1)
+| fields pct</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="unit">%</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[50,75,90]</option>
+        <option name="useColors">1</option>
+        <option name="colorMode">block</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Latest billing date ingested</title>
+      <single>
+        <search>
+          <query>`github_source` (sourcetype="github:copilot:billing:ai_credit" OR sourcetype="github:copilot:billing:ai_credit_by_user")
+| stats max(date) as latest_date</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="colorMode">none</option>
+      </single>
+    </panel>
+  </row>
+
+  <!-- ===================== Row 2: Consumption over time ===================== -->
+  <row>
+    <panel>
+      <title>Gross vs net consumption over time (enterprise)</title>
+      <chart>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| timechart span=1d sum(grossAmount) as "Gross" sum(netAmount) as "Net (billable)"</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">AI credits</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Cumulative gross consumption vs allocation</title>
+      <chart>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| timechart span=1d sum(grossAmount) as daily
+| streamstats sum(daily) as cumulative_gross
+| appendcols
+    [ search `github_source` sourcetype="github:copilot:billing:budget" budget_product_sku="$budgetSku$"
+      | stats latest(budget_amount) as budget_amount by enterprise scope budget_entity_name budget_product_sku
+      | stats sum(budget_amount) as allocation
+      | eval _t=1 ]
+| filldown allocation
+| fields _time cumulative_gross allocation</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleY.text">AI credits</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ===================== Row 3: Model breakdown ===================== -->
+  <row>
+    <panel>
+      <title>Top models by gross consumption</title>
+      <chart>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| stats sum(grossQuantity) as credits sum(grossAmount) as gross_amount by model
+| sort - credits
+| head 20</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.axisTitleX.text">AI credits (gross)</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Auto-router vs explicit model selection</title>
+      <chart>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| eval router=if(match(model, "^Auto: "), "Auto", "Explicit")
+| stats sum(grossAmount) as gross_amount by router</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Model mix over time (gross)</title>
+      <chart>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| timechart span=1d sum(grossAmount) by model</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.axisTitleY.text">AI credits (gross)</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Consumption by SKU</title>
+      <chart>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| stats sum(grossAmount) as gross_amount by sku</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ===================== Row 4: By user ===================== -->
+  <row>
+    <panel>
+      <title>Top users by gross consumption</title>
+      <table>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit_by_user"
+| stats sum(grossQuantity) as credits sum(grossAmount) as gross_amount dc(model) as models by user
+| sort - credits
+| head 25
+| rename user as "User" credits as "Credits (gross)" gross_amount as "Gross amount" models as "Distinct models"</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">25</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Per-user consumption over time</title>
+      <chart>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit_by_user"
+| timechart span=1d sum(grossAmount) by user limit=10</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleY.text">AI credits (gross)</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ============ Row 4b: Cost center & organization ============ -->
+  <row>
+    <panel>
+      <title>Consumption by cost center (gross)</title>
+      <table>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit_by_cost_center"
+| stats sum(grossQuantity) as credits sum(grossAmount) as gross_amount dc(model) as models by cost_center_name
+| sort - gross_amount
+| rename cost_center_name as "Cost center" credits as "Credits (gross)" gross_amount as "Gross amount" models as "Distinct models"</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Consumption by organization (gross)</title>
+      <table>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit_by_org"
+| stats sum(grossQuantity) as credits sum(grossAmount) as gross_amount dc(model) as models by organization
+| sort - gross_amount
+| rename organization as "Organization" credits as "Credits (gross)" gross_amount as "Gross amount" models as "Distinct models"</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ===================== Row 5: Governance ===================== -->
+  <row>
+    <panel>
+      <title>Budget governance (latest snapshot per SKU)</title>
+      <table>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:budget"
+| stats latest(budget_amount) as budget_amount latest(prevent_further_usage) as prevent_further_usage latest(effective_consumed_amount) as consumed latest('budget_alerting.will_alert') as will_alert latest('budget_alerting.alert_recipients{}') as alert_recipients by enterprise budget_product_sku budget_scope
+| eval alert_recipients=mvjoin(alert_recipients, ", ")
+| eval consumed=if(isnull(consumed),"(not reported)",consumed)
+| table enterprise budget_product_sku budget_scope budget_amount consumed prevent_further_usage will_alert alert_recipients
+| rename budget_product_sku as SKU budget_scope as Scope budget_amount as Allocation prevent_further_usage as "Blocks usage" will_alert as "Alerts on" alert_recipients as "Alert recipients"</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ===================== Row 6: Data quality / reconciliation ===================== -->
+  <row>
+    <panel>
+      <title>Duplicate daily usage keys (should be empty)</title>
+      <table>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| stats count sum(grossAmount) as gross by enterprise scope date sku model
+| where count > 1
+| sort - count</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Enterprise vs summed per-user gross (reconciliation)</title>
+      <chart>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit"
+| stats sum(grossAmount) as enterprise_gross by date
+| append
+    [ search `github_source` sourcetype="github:copilot:billing:ai_credit_by_user"
+      | stats sum(grossAmount) as user_gross by date ]
+| stats sum(enterprise_gross) as "Enterprise" sum(user_gross) as "Sum of users" by date</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleY.text">AI credits (gross)</option>
+      </chart>
+    </panel>
+  </row>
+</form>
