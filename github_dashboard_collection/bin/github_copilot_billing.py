@@ -46,6 +46,9 @@ CREDENTIAL_MASK = "<encrypted>"
 SOURCETYPE_BUDGET = "github:copilot:billing:budget"
 SOURCETYPE_AI_CREDIT = "github:copilot:billing:ai_credit"
 SOURCETYPE_AI_CREDIT_BY_USER = "github:copilot:billing:ai_credit_by_user"
+SOURCETYPE_AI_CREDIT_BY_COST_CENTER = \
+    "github:copilot:billing:ai_credit_by_cost_center"
+SOURCETYPE_AI_CREDIT_BY_ORG = "github:copilot:billing:ai_credit_by_org"
 
 DEFAULT_API_BASE_URL = "https://api.github.com"
 GITHUB_API_VERSION = "2022-11-28"
@@ -80,6 +83,13 @@ def _parse_date(value):
     if not value:
         return None
     return datetime.strptime(str(value).strip(), "%Y-%m-%d").date()
+
+
+def _split_csv(value):
+    """Split a comma-separated string into a list of trimmed, non-empty items."""
+    if not value:
+        return []
+    return [item.strip() for item in str(value).split(",") if item.strip()]
 
 
 def _day_epoch(day):
@@ -490,6 +500,54 @@ class BillingCollector:
                 body, day, SOURCETYPE_AI_CREDIT_BY_USER, extra={"user": login})
         return total
 
+    # -- per-cost-center usage ----------------------------------------------
+
+    def list_cost_centers(self):
+        """Return [(id, name), ...] of active cost centers for the enterprise."""
+        cost_centers = []
+        for page in self.client.paginate(
+                "/enterprises/%s/settings/billing/cost-centers"
+                % self.enterprise, params={"state": "active"}):
+            for cc in (page.get("costCenters") or page.get("cost_centers") or []):
+                cc_id = cc.get("id")
+                if cc_id:
+                    cost_centers.append((cc_id, cc.get("name") or cc_id))
+        self.log("INFO", "Found %s cost center(s)" % len(cost_centers))
+        return cost_centers
+
+    def collect_by_cost_center_for_day(self, day, cost_centers):
+        total = 0
+        for cc_id, cc_name in cost_centers:
+            params = {"year": day.year, "month": day.month, "day": day.day,
+                      "cost_center_id": cc_id}
+            status, body, _ = self.client.request(
+                "/enterprises/%s/settings/billing/ai_credit/usage"
+                % self.enterprise, params=params)
+            if status == 404 or body is None:
+                continue
+            total += self._emit_usage_items(
+                body, day, SOURCETYPE_AI_CREDIT_BY_COST_CENTER,
+                extra={"cost_center_id": cc_id, "cost_center_name": cc_name,
+                       "scope": "cost_center"})
+        return total
+
+    # -- per-organization usage ---------------------------------------------
+
+    def collect_by_org_for_day(self, day, organizations):
+        total = 0
+        for org in organizations:
+            params = {"year": day.year, "month": day.month, "day": day.day,
+                      "organization": org}
+            status, body, _ = self.client.request(
+                "/enterprises/%s/settings/billing/ai_credit/usage"
+                % self.enterprise, params=params)
+            if status == 404 or body is None:
+                continue
+            total += self._emit_usage_items(
+                body, day, SOURCETYPE_AI_CREDIT_BY_ORG,
+                extra={"organization": org, "scope": "organization"})
+        return total
+
 
 # ---------------------------------------------------------------------------
 # Date range planning
@@ -568,12 +626,33 @@ class GithubCopilotBilling(Script):
         for name, title in (
                 ("collect_budgets", "Collect budgets"),
                 ("collect_ai_credit", "Collect AI credit usage"),
-                ("collect_by_user", "Collect AI credit usage by user")):
+                ("collect_by_user", "Collect AI credit usage by user"),
+                ("collect_by_cost_center",
+                 "Collect AI credit usage by cost center"),
+                ("collect_by_org", "Collect AI credit usage by organization")):
             arg = Argument(name)
             arg.title = title
             arg.data_type = Argument.data_type_boolean
             arg.required_on_create = False
             scheme.add_argument(arg)
+
+        cost_center_ids = Argument("cost_center_ids")
+        cost_center_ids.title = "Cost center IDs"
+        cost_center_ids.description = ("Comma-separated cost center IDs for "
+                                       "collect_by_cost_center. Leave blank to "
+                                       "auto-enumerate active cost centers.")
+        cost_center_ids.data_type = Argument.data_type_string
+        cost_center_ids.required_on_create = False
+        scheme.add_argument(cost_center_ids)
+
+        organizations = Argument("organizations")
+        organizations.title = "Organizations"
+        organizations.description = ("Comma-separated organization logins for "
+                                     "collect_by_org. Required when "
+                                     "collect_by_org is enabled.")
+        organizations.data_type = Argument.data_type_string
+        organizations.required_on_create = False
+        scheme.add_argument(organizations)
 
         start_date = Argument("start_date")
         start_date.title = "Start date (YYYY-MM-DD)"
@@ -643,6 +722,11 @@ class GithubCopilotBilling(Script):
         collect_budgets = _to_bool(stanza.get("collect_budgets"), True)
         collect_ai_credit = _to_bool(stanza.get("collect_ai_credit"), True)
         collect_by_user = _to_bool(stanza.get("collect_by_user"), False)
+        collect_by_cost_center = _to_bool(stanza.get("collect_by_cost_center"),
+                                          False)
+        collect_by_org = _to_bool(stanza.get("collect_by_org"), False)
+        cost_center_ids = _split_csv(stanza.get("cost_center_ids"))
+        organizations = _split_csv(stanza.get("organizations"))
         start_date = _parse_date(stanza.get("start_date"))
         try:
             lookback_days = int(stanza.get("lookback_days") or DEFAULT_LOOKBACK_DAYS)
@@ -675,7 +759,8 @@ class GithubCopilotBilling(Script):
         if collect_budgets:
             collector.collect_budgets()
 
-        if not (collect_ai_credit or collect_by_user):
+        if not (collect_ai_credit or collect_by_user or collect_by_cost_center
+                or collect_by_org):
             return
 
         checkpoint = Checkpoint(inputs.metadata.get("checkpoint_dir"), input_name)
@@ -689,11 +774,29 @@ class GithubCopilotBilling(Script):
 
         logins = collector.list_seat_logins() if collect_by_user else []
 
+        cost_centers = []
+        if collect_by_cost_center:
+            if cost_center_ids:
+                cost_centers = [(cc, cc) for cc in cost_center_ids]
+            else:
+                cost_centers = collector.list_cost_centers()
+            if not cost_centers:
+                log("WARN", "collect_by_cost_center enabled but no cost centers "
+                    "found; set 'cost_center_ids' or verify enterprise access")
+
+        if collect_by_org and not organizations:
+            log("WARN", "collect_by_org enabled but 'organizations' is empty; "
+                "set a comma-separated list of org logins to collect")
+
         for day in days:
             if collect_ai_credit:
                 collector.collect_ai_credit_for_day(day)
             if collect_by_user and logins:
                 collector.collect_by_user_for_day(day, logins)
+            if collect_by_cost_center and cost_centers:
+                collector.collect_by_cost_center_for_day(day, cost_centers)
+            if collect_by_org and organizations:
+                collector.collect_by_org_for_day(day, organizations)
             checkpoint.write_last_day(day)
 
 
@@ -732,6 +835,9 @@ def _run_selftest():
             raise urllib.error.HTTPError(url, 404, "not found", {}, None)
 
     seats_page = {"seats": [{"assignee": {"login": "octocat"}}]}
+    cost_centers_page = {
+        "costCenters": [{"id": "cc-1", "name": "Engineering", "state": "active"}],
+    }
     budgets_page = {
         "budgets": [{"id": "b1", "budget_amount": 500, "budget_scope": "enterprise",
                      "budget_product_sku": "ai_credits"}],
@@ -751,6 +857,7 @@ def _run_selftest():
     }
     opener = FakeOpener([
         ("/settings/billing/budgets", FakeResponse(budgets_page)),
+        ("/settings/billing/cost-centers", FakeResponse(cost_centers_page)),
         ("/copilot/billing/seats", FakeResponse(seats_page)),
         ("/settings/billing/ai_credit/usage", FakeResponse(usage_page)),
     ])
@@ -783,6 +890,23 @@ def _run_selftest():
     user_events = [e for e in events if e[0] == SOURCETYPE_AI_CREDIT_BY_USER]
     assert all(e[2]["user"] == "octocat" for e in user_events)
 
+    cost_centers = collector.list_cost_centers()
+    assert cost_centers == [("cc-1", "Engineering")], \
+        "cost centers wrong: %s" % cost_centers
+    n_cc = collector.collect_by_cost_center_for_day(day, cost_centers)
+    assert n_cc == 2, "expected 2 by-cost-center events, got %s" % n_cc
+    cc_events = [e for e in events
+                 if e[0] == SOURCETYPE_AI_CREDIT_BY_COST_CENTER]
+    assert all(e[2]["cost_center_id"] == "cc-1" for e in cc_events)
+    assert all(e[2]["cost_center_name"] == "Engineering" for e in cc_events)
+    assert all(e[2]["scope"] == "cost_center" for e in cc_events)
+
+    n_org = collector.collect_by_org_for_day(day, ["acme-eng"])
+    assert n_org == 2, "expected 2 by-org events, got %s" % n_org
+    org_events = [e for e in events if e[0] == SOURCETYPE_AI_CREDIT_BY_ORG]
+    assert all(e[2]["organization"] == "acme-eng" for e in org_events)
+    assert all(e[2]["scope"] == "organization" for e in org_events)
+
     # Date-range planning.
     assert plan_day_range(date(2024, 1, 1), None, 30, today=date(2024, 1, 5)) == \
         [date(2024, 1, 2), date(2024, 1, 3), date(2024, 1, 4)]
@@ -795,7 +919,7 @@ def _run_selftest():
                                '<https://api.github.com/x?page=5>; rel="last"')
     assert links.get("next", "").endswith("page=2"), links
 
-    print("SELFTEST OK: %s events emitted across 3 sourcetypes" % len(events))
+    print("SELFTEST OK: %s events emitted across 5 sourcetypes" % len(events))
     return 0
 
 

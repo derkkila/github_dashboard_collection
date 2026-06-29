@@ -47,6 +47,8 @@ X-GitHub-Api-Version: 2022-11-28
 | Overall pool | `GET /enterprises/{ent}/settings/billing/budgets?scope=enterprise` |
 | Consumption over time | `GET /enterprises/{ent}/settings/billing/ai_credit/usage` |
 | Consumption by user | `GET /enterprises/{ent}/copilot/billing/seats` then `.../ai_credit/usage?user={login}` |
+| Consumption by cost center | `GET /enterprises/{ent}/settings/billing/cost-centers` then `.../ai_credit/usage?cost_center_id={id}` |
+| Consumption by organization | `.../ai_credit/usage?organization={org}` |
 | Usage by model | one Splunk event per `usageItems[]` entry (carries `model`) |
 
 The base URL defaults to `https://api.github.com` and is configurable via
@@ -59,6 +61,15 @@ The base URL defaults to `https://api.github.com` and is configurable via
 > Copilot seats and issues one `ai_credit/usage?user={login}` request per user.
 > The **model** breakdown comes from the single unfiltered enterprise call,
 > where `model` is present on every `usageItems[]` entry.
+
+> **Cost center and organization attribution are cheaper than per-user.** The
+> `ai_credit/usage` endpoint also accepts `cost_center_id` and `organization`
+> filters, so `collect_by_cost_center` and `collect_by_org` make **one** call
+> per group per day instead of one per user. There is still no multi-value form
+> (`?user=a,b` / `?organization=x,y` are not supported), so each group is its
+> own request. `collect_by_cost_center` auto-enumerates active cost centers from
+> the cost-centers endpoint unless you pin a `cost_center_ids` list;
+> `collect_by_org` always uses the explicit `organizations` list you provide.
 
 ## Providing the PAT
 
@@ -99,8 +110,11 @@ never appears in `default/`.
    `local/inputs.conf`, set your `enterprise` slug, and remove `disabled = true`.
 2. Provide the PAT (Option A or B above). For Option A, set `token = <your PAT>`
    in the stanza; it is encrypted and masked on the first run.
-3. Choose what to collect with `collect_budgets`, `collect_ai_credit`, and
-   `collect_by_user`, and set the `interval` (a daily `86400` is recommended).
+3. Choose what to collect with `collect_budgets`, `collect_ai_credit`,
+   `collect_by_user`, `collect_by_cost_center`, and `collect_by_org`, and set the
+   `interval` (a daily `86400` is recommended). For `collect_by_cost_center`,
+   optionally pin `cost_center_ids`; for `collect_by_org`, list the orgs in
+   `organizations`.
 4. On the first run the input backfills from `start_date` (or `lookback_days`,
    default 30) and writes a per-input checkpoint so subsequent runs only fetch
    new days. The 24-month retention window is enforced automatically.
@@ -115,6 +129,11 @@ api_base_url = https://api.github.com
 collect_budgets = true
 collect_ai_credit = true
 collect_by_user = true
+# Optional group-level attribution (one API call per group per day):
+collect_by_cost_center = false
+# cost_center_ids = abc123,def456   (blank = auto-enumerate active cost centers)
+collect_by_org = false
+# organizations = my-org,another-org
 lookback_days = 30
 interval = 86400
 index = github
@@ -128,11 +147,15 @@ disabled = false
 | `github:copilot:billing:budget` | One event per enterprise budget, enriched with `effective_budget_amount` (allocation) and `effective_consumed_amount`. |
 | `github:copilot:billing:ai_credit` | One event per `usageItems[]` entry for the enterprise. |
 | `github:copilot:billing:ai_credit_by_user` | One event per `usageItems[]` entry, tagged with `user`. |
+| `github:copilot:billing:ai_credit_by_cost_center` | One event per `usageItems[]` entry, tagged with `cost_center_id` and `cost_center_name`. |
+| `github:copilot:billing:ai_credit_by_org` | One event per `usageItems[]` entry, tagged with `organization`. |
 
 Every event is JSON (`KV_MODE = json`) and is enriched with `enterprise`,
 `scope`, a `date` (YYYY-MM-DD), and a `time_period` object (`year`/`month`/`day`,
 also flattened to top-level `year`/`month`/`day` fields). By-user events also
-carry `user`.
+carry `user`; by-cost-center events carry `cost_center_id` and
+`cost_center_name` (scope `cost_center`); by-org events carry `organization`
+(scope `organization`).
 
 ## Example SPL
 
@@ -170,6 +193,24 @@ index=github sourcetype=github:copilot:billing:ai_credit_by_user
 index=github sourcetype=github:copilot:billing:ai_credit
 | stats sum(grossQuantity) AS credits sum(grossAmount) AS gross_spend by model
 | sort - credits
+```
+
+### 5. Consumption by cost center
+
+```
+index=github sourcetype=github:copilot:billing:ai_credit_by_cost_center
+| stats sum(grossQuantity) AS credits sum(grossAmount) AS gross_spend
+        by cost_center_name
+| sort - gross_spend
+```
+
+### 6. Consumption by organization
+
+```
+index=github sourcetype=github:copilot:billing:ai_credit_by_org
+| stats sum(grossQuantity) AS credits sum(grossAmount) AS gross_spend
+        by organization
+| sort - gross_spend
 ```
 
 ## Troubleshooting

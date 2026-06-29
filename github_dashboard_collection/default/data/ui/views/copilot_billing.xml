@@ -236,6 +236,38 @@
     </panel>
   </row>
 
+  <!-- ============ Row 4b: Cost center & organization ============ -->
+  <row>
+    <panel>
+      <title>Consumption by cost center (gross)</title>
+      <table>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit_by_cost_center"
+| stats sum(grossQuantity) as credits sum(grossAmount) as gross_amount dc(model) as models by cost_center_name
+| sort - gross_amount
+| rename cost_center_name as "Cost center" credits as "Credits (gross)" gross_amount as "Gross amount" models as "Distinct models"</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Consumption by organization (gross)</title>
+      <table>
+        <search>
+          <query>`github_source` sourcetype="github:copilot:billing:ai_credit_by_org"
+| stats sum(grossQuantity) as credits sum(grossAmount) as gross_amount dc(model) as models by organization
+| sort - gross_amount
+| rename organization as "Organization" credits as "Credits (gross)" gross_amount as "Gross amount" models as "Distinct models"</query>
+          <earliest>$timeRng.earliest$</earliest>
+          <latest>$timeRng.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+
   <!-- ===================== Row 5: Governance ===================== -->
   <row>
     <panel>

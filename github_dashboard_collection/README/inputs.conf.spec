@@ -1,7 +1,7 @@
 [github_copilot_billing://<name>]
 * Collects GitHub Copilot AI-credit billing and usage data for a GitHub
-* enterprise and indexes it in Splunk. Feeds the budget, ai_credit and
-* ai_credit_by_user sourcetypes.
+* enterprise and indexes it in Splunk. Feeds the budget, ai_credit,
+* ai_credit_by_user, ai_credit_by_cost_center and ai_credit_by_org sourcetypes.
 * Enter the personal access token (PAT) in the "token" field below. On the
 * first run it is moved into Splunk's encrypted credential store
 * (storage/passwords, realm = this input's <name>) and the field is masked, so
@@ -35,6 +35,24 @@ collect_ai_credit = <boolean>
 collect_by_user = <boolean>
 * Optional. Loop the Copilot seats and collect AI credit usage per user,
 * tagging each event with the user login. Defaults to false.
+
+collect_by_cost_center = <boolean>
+* Optional. Collect AI credit usage per cost center, tagging each event with
+* the cost_center_id and cost_center_name. When cost_center_ids is blank the
+* input auto-enumerates the enterprise's active cost centers. Defaults to false.
+
+collect_by_org = <boolean>
+* Optional. Collect AI credit usage per organization, tagging each event with
+* the organization login. Requires the organizations setting below.
+* Defaults to false.
+
+cost_center_ids = <string>
+* Optional. Comma-separated list of cost center IDs to scope
+* collect_by_cost_center. Leave blank to auto-enumerate active cost centers.
+
+organizations = <string>
+* Optional. Comma-separated list of organization logins to collect when
+* collect_by_org is enabled.
 
 start_date = <string>
 * Optional. First day to backfill on the initial run, in YYYY-MM-DD format.
