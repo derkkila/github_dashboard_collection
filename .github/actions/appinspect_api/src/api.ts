@@ -122,7 +122,15 @@ export interface Check {
     messages: Message[];
     name: string;
     tags: string[];
-    result: 'success' | 'not_applicable' | 'manual_check' | 'failure' | 'error' | 'warning';
+    result:
+        | 'success'
+        | 'not_applicable'
+        | 'manual_check'
+        | 'failure'
+        | 'error'
+        | 'warning'
+        | 'future_failure'
+        | 'skipped';
 }
 
 export interface Group {

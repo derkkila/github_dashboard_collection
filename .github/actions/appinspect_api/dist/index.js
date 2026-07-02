@@ -2704,6 +2704,25 @@ class DecodedURL extends URL {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -2715,11 +2734,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const assert_1 = __nccwpck_require__(2613);
-const fs = __nccwpck_require__(9896);
-const path = __nccwpck_require__(6928);
-_a = fs.promises, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
+exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
+const fs = __importStar(__nccwpck_require__(9896));
+const path = __importStar(__nccwpck_require__(6928));
+_a = fs.promises
+// export const {open} = 'fs'
+, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
+// export const {open} = 'fs'
 exports.IS_WINDOWS = process.platform === 'win32';
+// See https://github.com/nodejs/node/blob/d0153aee367422d0858105abec186da4dff0a0c5/deps/uv/include/uv/win.h#L691
+exports.UV_FS_O_EXLOCK = 0x10000000;
+exports.READONLY = fs.constants.O_RDONLY;
 function exists(fsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -2758,49 +2783,6 @@ function isRooted(p) {
     return p.startsWith('/');
 }
 exports.isRooted = isRooted;
-/**
- * Recursively create a directory at `fsPath`.
- *
- * This implementation is optimistic, meaning it attempts to create the full
- * path first, and backs up the path stack from there.
- *
- * @param fsPath The path to create
- * @param maxDepth The maximum recursion depth
- * @param depth The current recursion depth
- */
-function mkdirP(fsPath, maxDepth = 1000, depth = 1) {
-    return __awaiter(this, void 0, void 0, function* () {
-        assert_1.ok(fsPath, 'a path argument must be provided');
-        fsPath = path.resolve(fsPath);
-        if (depth >= maxDepth)
-            return exports.mkdir(fsPath);
-        try {
-            yield exports.mkdir(fsPath);
-            return;
-        }
-        catch (err) {
-            switch (err.code) {
-                case 'ENOENT': {
-                    yield mkdirP(path.dirname(fsPath), maxDepth, depth + 1);
-                    yield exports.mkdir(fsPath);
-                    return;
-                }
-                default: {
-                    let stats;
-                    try {
-                        stats = yield exports.stat(fsPath);
-                    }
-                    catch (err2) {
-                        throw err;
-                    }
-                    if (!stats.isDirectory())
-                        throw err;
-                }
-            }
-        }
-    });
-}
-exports.mkdirP = mkdirP;
 /**
  * Best effort attempt to determine whether a file exists and is executable.
  * @param filePath    file path to check
@@ -2897,6 +2879,12 @@ function isUnixExecutable(stats) {
         ((stats.mode & 8) > 0 && stats.gid === process.getgid()) ||
         ((stats.mode & 64) > 0 && stats.uid === process.getuid()));
 }
+// Get the path of cmd.exe in windows
+function getCmdPath() {
+    var _a;
+    return (_a = process.env['COMSPEC']) !== null && _a !== void 0 ? _a : `cmd.exe`;
+}
+exports.getCmdPath = getCmdPath;
 //# sourceMappingURL=io-util.js.map
 
 /***/ }),
@@ -2906,6 +2894,25 @@ function isUnixExecutable(stats) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -2916,11 +2923,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const childProcess = __nccwpck_require__(5317);
-const path = __nccwpck_require__(6928);
-const util_1 = __nccwpck_require__(9023);
-const ioUtil = __nccwpck_require__(5207);
-const exec = util_1.promisify(childProcess.exec);
+exports.findInPath = exports.which = exports.mkdirP = exports.rmRF = exports.mv = exports.cp = void 0;
+const assert_1 = __nccwpck_require__(2613);
+const path = __importStar(__nccwpck_require__(6928));
+const ioUtil = __importStar(__nccwpck_require__(5207));
 /**
  * Copies a file or folder.
  * Based off of shelljs - https://github.com/shelljs/shelljs/blob/9237f66c52e5daa40458f94f9565e18e8132f5a6/src/cp.js
@@ -2931,14 +2937,14 @@ const exec = util_1.promisify(childProcess.exec);
  */
 function cp(source, dest, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { force, recursive } = readCopyOptions(options);
+        const { force, recursive, copySourceDirectory } = readCopyOptions(options);
         const destStat = (yield ioUtil.exists(dest)) ? yield ioUtil.stat(dest) : null;
         // Dest is an existing file, but not forcing
         if (destStat && destStat.isFile() && !force) {
             return;
         }
         // If dest is an existing directory, should copy inside.
-        const newDest = destStat && destStat.isDirectory()
+        const newDest = destStat && destStat.isDirectory() && copySourceDirectory
             ? path.join(dest, path.basename(source))
             : dest;
         if (!(yield ioUtil.exists(source))) {
@@ -3001,51 +3007,23 @@ exports.mv = mv;
 function rmRF(inputPath) {
     return __awaiter(this, void 0, void 0, function* () {
         if (ioUtil.IS_WINDOWS) {
-            // Node doesn't provide a delete operation, only an unlink function. This means that if the file is being used by another
-            // program (e.g. antivirus), it won't be deleted. To address this, we shell out the work to rd/del.
-            try {
-                if (yield ioUtil.isDirectory(inputPath, true)) {
-                    yield exec(`rd /s /q "${inputPath}"`);
-                }
-                else {
-                    yield exec(`del /f /a "${inputPath}"`);
-                }
-            }
-            catch (err) {
-                // if you try to delete a file that doesn't exist, desired result is achieved
-                // other errors are valid
-                if (err.code !== 'ENOENT')
-                    throw err;
-            }
-            // Shelling out fails to remove a symlink folder with missing source, this unlink catches that
-            try {
-                yield ioUtil.unlink(inputPath);
-            }
-            catch (err) {
-                // if you try to delete a file that doesn't exist, desired result is achieved
-                // other errors are valid
-                if (err.code !== 'ENOENT')
-                    throw err;
+            // Check for invalid characters
+            // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+            if (/[*"<>|]/.test(inputPath)) {
+                throw new Error('File path must not contain `*`, `"`, `<`, `>` or `|` on Windows');
             }
         }
-        else {
-            let isDir = false;
-            try {
-                isDir = yield ioUtil.isDirectory(inputPath);
-            }
-            catch (err) {
-                // if you try to delete a file that doesn't exist, desired result is achieved
-                // other errors are valid
-                if (err.code !== 'ENOENT')
-                    throw err;
-                return;
-            }
-            if (isDir) {
-                yield exec(`rm -rf "${inputPath}"`);
-            }
-            else {
-                yield ioUtil.unlink(inputPath);
-            }
+        try {
+            // note if path does not exist, error is silent
+            yield ioUtil.rm(inputPath, {
+                force: true,
+                maxRetries: 3,
+                recursive: true,
+                retryDelay: 300
+            });
+        }
+        catch (err) {
+            throw new Error(`File was unable to be removed ${err}`);
         }
     });
 }
@@ -3059,7 +3037,8 @@ exports.rmRF = rmRF;
  */
 function mkdirP(fsPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield ioUtil.mkdirP(fsPath);
+        assert_1.ok(fsPath, 'a path argument must be provided');
+        yield ioUtil.mkdir(fsPath, { recursive: true });
     });
 }
 exports.mkdirP = mkdirP;
@@ -3087,62 +3066,80 @@ function which(tool, check) {
                     throw new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also check the file mode to verify the file is executable.`);
                 }
             }
+            return result;
         }
-        try {
-            // build the list of extensions to try
-            const extensions = [];
-            if (ioUtil.IS_WINDOWS && process.env.PATHEXT) {
-                for (const extension of process.env.PATHEXT.split(path.delimiter)) {
-                    if (extension) {
-                        extensions.push(extension);
-                    }
-                }
-            }
-            // if it's rooted, return it if exists. otherwise return empty.
-            if (ioUtil.isRooted(tool)) {
-                const filePath = yield ioUtil.tryGetExecutablePath(tool, extensions);
-                if (filePath) {
-                    return filePath;
-                }
-                return '';
-            }
-            // if any path separators, return empty
-            if (tool.includes('/') || (ioUtil.IS_WINDOWS && tool.includes('\\'))) {
-                return '';
-            }
-            // build the list of directories
-            //
-            // Note, technically "where" checks the current directory on Windows. From a toolkit perspective,
-            // it feels like we should not do this. Checking the current directory seems like more of a use
-            // case of a shell, and the which() function exposed by the toolkit should strive for consistency
-            // across platforms.
-            const directories = [];
-            if (process.env.PATH) {
-                for (const p of process.env.PATH.split(path.delimiter)) {
-                    if (p) {
-                        directories.push(p);
-                    }
-                }
-            }
-            // return the first match
-            for (const directory of directories) {
-                const filePath = yield ioUtil.tryGetExecutablePath(directory + path.sep + tool, extensions);
-                if (filePath) {
-                    return filePath;
-                }
-            }
-            return '';
+        const matches = yield findInPath(tool);
+        if (matches && matches.length > 0) {
+            return matches[0];
         }
-        catch (err) {
-            throw new Error(`which failed with message ${err.message}`);
-        }
+        return '';
     });
 }
 exports.which = which;
+/**
+ * Returns a list of all occurrences of the given tool on the system path.
+ *
+ * @returns   Promise<string[]>  the paths of the tool
+ */
+function findInPath(tool) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!tool) {
+            throw new Error("parameter 'tool' is required");
+        }
+        // build the list of extensions to try
+        const extensions = [];
+        if (ioUtil.IS_WINDOWS && process.env['PATHEXT']) {
+            for (const extension of process.env['PATHEXT'].split(path.delimiter)) {
+                if (extension) {
+                    extensions.push(extension);
+                }
+            }
+        }
+        // if it's rooted, return it if exists. otherwise return empty.
+        if (ioUtil.isRooted(tool)) {
+            const filePath = yield ioUtil.tryGetExecutablePath(tool, extensions);
+            if (filePath) {
+                return [filePath];
+            }
+            return [];
+        }
+        // if any path separators, return empty
+        if (tool.includes(path.sep)) {
+            return [];
+        }
+        // build the list of directories
+        //
+        // Note, technically "where" checks the current directory on Windows. From a toolkit perspective,
+        // it feels like we should not do this. Checking the current directory seems like more of a use
+        // case of a shell, and the which() function exposed by the toolkit should strive for consistency
+        // across platforms.
+        const directories = [];
+        if (process.env.PATH) {
+            for (const p of process.env.PATH.split(path.delimiter)) {
+                if (p) {
+                    directories.push(p);
+                }
+            }
+        }
+        // find all matches
+        const matches = [];
+        for (const directory of directories) {
+            const filePath = yield ioUtil.tryGetExecutablePath(path.join(directory, tool), extensions);
+            if (filePath) {
+                matches.push(filePath);
+            }
+        }
+        return matches;
+    });
+}
+exports.findInPath = findInPath;
 function readCopyOptions(options) {
     const force = options.force == null ? true : options.force;
     const recursive = Boolean(options.recursive);
-    return { force, recursive };
+    const copySourceDirectory = options.copySourceDirectory == null
+        ? true
+        : Boolean(options.copySourceDirectory);
+    return { force, recursive, copySourceDirectory };
 }
 function cpDirRecursive(sourceDir, destDir, currentDepth, force) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -3639,6 +3636,83 @@ function descending(a, b)
 
 /***/ }),
 
+/***/ 2639:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var bind = __nccwpck_require__(7564);
+
+var $apply = __nccwpck_require__(3945);
+var $call = __nccwpck_require__(8093);
+var $reflectApply = __nccwpck_require__(1330);
+
+/** @type {import('./actualApply')} */
+module.exports = $reflectApply || bind.call($call, $apply);
+
+
+/***/ }),
+
+/***/ 3945:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./functionApply')} */
+module.exports = Function.prototype.apply;
+
+
+/***/ }),
+
+/***/ 8093:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./functionCall')} */
+module.exports = Function.prototype.call;
+
+
+/***/ }),
+
+/***/ 8705:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var bind = __nccwpck_require__(7564);
+var $TypeError = __nccwpck_require__(3314);
+
+var $call = __nccwpck_require__(8093);
+var $actualApply = __nccwpck_require__(2639);
+
+/** @type {(args: [Function, thisArg?: unknown, ...args: unknown[]]) => Function} TODO FIXME, find a way to use import('.') */
+module.exports = function callBindBasic(args) {
+	if (args.length < 1 || typeof args[0] !== 'function') {
+		throw new $TypeError('a function is required');
+	}
+	return $actualApply(bind, $call, args);
+};
+
+
+/***/ }),
+
+/***/ 1330:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./reflectApply')} */
+module.exports = typeof Reflect !== 'undefined' && Reflect && Reflect.apply;
+
+
+/***/ }),
+
 /***/ 5630:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -3968,8 +4042,210 @@ DelayedStream.prototype._checkIfMaxDataSizeExceeded = function() {
 
 /***/ }),
 
+/***/ 6669:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var callBind = __nccwpck_require__(8705);
+var gOPD = __nccwpck_require__(3170);
+
+var hasProtoAccessor;
+try {
+	// eslint-disable-next-line no-extra-parens, no-proto
+	hasProtoAccessor = /** @type {{ __proto__?: typeof Array.prototype }} */ ([]).__proto__ === Array.prototype;
+} catch (e) {
+	if (!e || typeof e !== 'object' || !('code' in e) || e.code !== 'ERR_PROTO_ACCESS') {
+		throw e;
+	}
+}
+
+// eslint-disable-next-line no-extra-parens
+var desc = !!hasProtoAccessor && gOPD && gOPD(Object.prototype, /** @type {keyof typeof Object.prototype} */ ('__proto__'));
+
+var $Object = Object;
+var $getPrototypeOf = $Object.getPrototypeOf;
+
+/** @type {import('./get')} */
+module.exports = desc && typeof desc.get === 'function'
+	? callBind([desc.get])
+	: typeof $getPrototypeOf === 'function'
+		? /** @type {import('./get')} */ function getDunder(value) {
+			// eslint-disable-next-line eqeqeq
+			return $getPrototypeOf(value == null ? value : $Object(value));
+		}
+		: false;
+
+
+/***/ }),
+
+/***/ 9094:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('.')} */
+var $defineProperty = Object.defineProperty || false;
+if ($defineProperty) {
+	try {
+		$defineProperty({}, 'a', { value: 1 });
+	} catch (e) {
+		// IE 8 has a broken defineProperty
+		$defineProperty = false;
+	}
+}
+
+module.exports = $defineProperty;
+
+
+/***/ }),
+
+/***/ 3056:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./eval')} */
+module.exports = EvalError;
+
+
+/***/ }),
+
+/***/ 1620:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('.')} */
+module.exports = Error;
+
+
+/***/ }),
+
+/***/ 4585:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./range')} */
+module.exports = RangeError;
+
+
+/***/ }),
+
+/***/ 6905:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./ref')} */
+module.exports = ReferenceError;
+
+
+/***/ }),
+
+/***/ 105:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./syntax')} */
+module.exports = SyntaxError;
+
+
+/***/ }),
+
+/***/ 3314:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./type')} */
+module.exports = TypeError;
+
+
+/***/ }),
+
+/***/ 2578:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./uri')} */
+module.exports = URIError;
+
+
+/***/ }),
+
+/***/ 5399:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('.')} */
+module.exports = Object;
+
+
+/***/ }),
+
+/***/ 8700:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var GetIntrinsic = __nccwpck_require__(470);
+
+var $defineProperty = GetIntrinsic('%Object.defineProperty%', true);
+
+var hasToStringTag = __nccwpck_require__(5479)();
+var hasOwn = __nccwpck_require__(4076);
+var $TypeError = __nccwpck_require__(3314);
+
+var toStringTag = hasToStringTag ? Symbol.toStringTag : null;
+
+/** @type {import('.')} */
+module.exports = function setToStringTag(object, value) {
+	var overrideIfSet = arguments.length > 2 && !!arguments[2] && arguments[2].force;
+	var nonConfigurable = arguments.length > 2 && !!arguments[2] && arguments[2].nonConfigurable;
+	if (
+		(typeof overrideIfSet !== 'undefined' && typeof overrideIfSet !== 'boolean')
+		|| (typeof nonConfigurable !== 'undefined' && typeof nonConfigurable !== 'boolean')
+	) {
+		throw new $TypeError('if provided, the `overrideIfSet` and `nonConfigurable` options must be booleans');
+	}
+	if (toStringTag && (overrideIfSet || !hasOwn(object, toStringTag))) {
+		if ($defineProperty) {
+			$defineProperty(object, toStringTag, {
+				configurable: !nonConfigurable,
+				enumerable: false,
+				value: value,
+				writable: false
+			});
+		} else {
+			object[toStringTag] = value; // eslint-disable-line no-param-reassign
+		}
+	}
+};
+
+
+/***/ }),
+
 /***/ 6454:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
 
 var CombinedStream = __nccwpck_require__(5630);
 var util = __nccwpck_require__(9023);
@@ -3978,15 +4254,17 @@ var http = __nccwpck_require__(8611);
 var https = __nccwpck_require__(5692);
 var parseUrl = (__nccwpck_require__(7016).parse);
 var fs = __nccwpck_require__(9896);
+var crypto = __nccwpck_require__(6982);
 var mime = __nccwpck_require__(4096);
 var asynckit = __nccwpck_require__(1324);
+var setToStringTag = __nccwpck_require__(8700);
+var hasOwn = __nccwpck_require__(4076);
 var populate = __nccwpck_require__(1835);
 
-// Public API
-module.exports = FormData;
-
-// make it a Stream
-util.inherits(FormData, CombinedStream);
+// escape CR/LF/`"` so a name/filename can't inject headers or smuggle parts; matches the WHATWG HTML multipart/form-data encoding
+function escapeHeaderParam(str) {
+  return String(str).replace(/\r/g, '%0D').replace(/\n/g, '%0A').replace(/"/g, '%22');
+}
 
 /**
  * Create readable "multipart/form-data" streams.
@@ -4008,34 +4286,39 @@ function FormData(options) {
   CombinedStream.call(this);
 
   options = options || {};
-  for (var option in options) {
+  for (var option in options) { // eslint-disable-line no-restricted-syntax
     this[option] = options[option];
   }
 }
 
+// make it a Stream
+util.inherits(FormData, CombinedStream);
+
 FormData.LINE_BREAK = '\r\n';
 FormData.DEFAULT_CONTENT_TYPE = 'application/octet-stream';
 
-FormData.prototype.append = function(field, value, options) {
+FormData.prototype.append = function (field, value, options) {
 
   options = options || {};
 
   // allow filename as single option
-  if (typeof options == 'string') {
-    options = {filename: options};
+  if (typeof options === 'string') {
+    options = { filename: options };
   }
 
   var append = CombinedStream.prototype.append.bind(this);
 
   // all that streamy business can't handle numbers
-  if (typeof value == 'number') {
-    value = '' + value;
+  if (typeof value === 'number' || value == null) {
+    value = String(value);
   }
 
   // https://github.com/felixge/node-form-data/issues/38
-  if (util.isArray(value)) {
-    // Please convert your array into string
-    // the way web server expects it
+  if (Array.isArray(value)) {
+    /*
+     * Please convert your array into string
+     * the way web server expects it
+     */
     this._error(new Error('Arrays are not supported.'));
     return;
   }
@@ -4051,15 +4334,17 @@ FormData.prototype.append = function(field, value, options) {
   this._trackLength(header, value, options);
 };
 
-FormData.prototype._trackLength = function(header, value, options) {
+FormData.prototype._trackLength = function (header, value, options) {
   var valueLength = 0;
 
-  // used w/ getLengthSync(), when length is known.
-  // e.g. for streaming directly from a remote server,
-  // w/ a known file a size, and not wanting to wait for
-  // incoming file to finish to get its size.
+  /*
+   * used w/ getLengthSync(), when length is known.
+   * e.g. for streaming directly from a remote server,
+   * w/ a known file a size, and not wanting to wait for
+   * incoming file to finish to get its size.
+   */
   if (options.knownLength != null) {
-    valueLength += +options.knownLength;
+    valueLength += Number(options.knownLength);
   } else if (Buffer.isBuffer(value)) {
     valueLength = value.length;
   } else if (typeof value === 'string') {
@@ -4069,12 +4354,10 @@ FormData.prototype._trackLength = function(header, value, options) {
   this._valueLength += valueLength;
 
   // @check why add CRLF? does this account for custom/multiple CRLFs?
-  this._overheadLength +=
-    Buffer.byteLength(header) +
-    FormData.LINE_BREAK.length;
+  this._overheadLength += Buffer.byteLength(header) + FormData.LINE_BREAK.length;
 
   // empty or either doesn't have path or not an http response
-  if (!value || ( !value.path && !(value.readable && value.hasOwnProperty('httpVersion')) )) {
+  if (!value || (!value.path && !(value.readable && hasOwn(value, 'httpVersion')))) {
     return;
   }
 
@@ -4084,28 +4367,31 @@ FormData.prototype._trackLength = function(header, value, options) {
   }
 };
 
-FormData.prototype._lengthRetriever = function(value, callback) {
+FormData.prototype._lengthRetriever = function (value, callback) {
+  if (hasOwn(value, 'fd')) {
 
-  if (value.hasOwnProperty('fd')) {
+    /*
+     * take read range into a account
+     * `end` = Infinity –> read file till the end
+     *
+     * TODO: Looks like there is bug in Node fs.createReadStream
+     * it doesn't respect `end` options without `start` options
+     * Fix it when node fixes it.
+     * https://github.com/joyent/node/issues/7819
+     */
+    if (value.end != null && value.end !== Infinity && value.start != null) {
 
-    // take read range into a account
-    // `end` = Infinity –> read file till the end
-    //
-    // TODO: Looks like there is bug in Node fs.createReadStream
-    // it doesn't respect `end` options without `start` options
-    // Fix it when node fixes it.
-    // https://github.com/joyent/node/issues/7819
-    if (value.end != undefined && value.end != Infinity && value.start != undefined) {
-
-      // when end specified
-      // no need to calculate range
-      // inclusive, starts with 0
+      /*
+       * when end specified
+       * no need to calculate range
+       * inclusive, starts with 0
+       */
       callback(null, value.end + 1 - (value.start ? value.start : 0));
 
     // not that fast snoopy
     } else {
       // still need to fetch file size from fs
-      fs.stat(value.path, function(err, stat) {
+      fs.stat(value.path, function (err, stat) {
 
         var fileSize;
 
@@ -4121,15 +4407,15 @@ FormData.prototype._lengthRetriever = function(value, callback) {
     }
 
   // or http response
-  } else if (value.hasOwnProperty('httpVersion')) {
-    callback(null, +value.headers['content-length']);
+  } else if (hasOwn(value, 'httpVersion')) {
+    callback(null, Number(value.headers['content-length']));
 
   // or request stream http://github.com/mikeal/request
-  } else if (value.hasOwnProperty('httpModule')) {
+  } else if (hasOwn(value, 'httpModule')) {
     // wait till response come back
-    value.on('response', function(response) {
+    value.on('response', function (response) {
       value.pause();
-      callback(null, +response.headers['content-length']);
+      callback(null, Number(response.headers['content-length']));
     });
     value.resume();
 
@@ -4139,11 +4425,13 @@ FormData.prototype._lengthRetriever = function(value, callback) {
   }
 };
 
-FormData.prototype._multiPartHeader = function(field, value, options) {
-  // custom header specified (as string)?
-  // it becomes responsible for boundary
-  // (e.g. to handle extra CRLFs on .NET servers)
-  if (typeof options.header == 'string') {
+FormData.prototype._multiPartHeader = function (field, value, options) {
+  /*
+   * custom header specified (as string)?
+   * it becomes responsible for boundary
+   * (e.g. to handle extra CRLFs on .NET servers)
+   */
+  if (typeof options.header === 'string') {
     return options.header;
   }
 
@@ -4151,85 +4439,86 @@ FormData.prototype._multiPartHeader = function(field, value, options) {
   var contentType = this._getContentType(value, options);
 
   var contents = '';
-  var headers  = {
+  var headers = {
     // add custom disposition as third element or keep it two elements if not
-    'Content-Disposition': ['form-data', 'name="' + field + '"'].concat(contentDisposition || []),
+    'Content-Disposition': ['form-data', 'name="' + escapeHeaderParam(field) + '"'].concat(contentDisposition || []),
     // if no content type. allow it to be empty array
-    'Content-Type': [].concat(contentType || [])
+    'Content-Type': [].concat(contentType || []),
   };
 
   // allow custom headers.
-  if (typeof options.header == 'object') {
+  if (typeof options.header === 'object') {
     populate(headers, options.header);
   }
 
   var header;
-  for (var prop in headers) {
-    if (!headers.hasOwnProperty(prop)) continue;
-    header = headers[prop];
+  for (var prop in headers) { // eslint-disable-line no-restricted-syntax
+    if (hasOwn(headers, prop)) {
+      header = headers[prop];
 
-    // skip nullish headers.
-    if (header == null) {
-      continue;
-    }
+      // skip nullish headers.
+      if (header == null) {
+        continue; // eslint-disable-line no-continue, no-restricted-syntax
+      }
 
-    // convert all headers to arrays.
-    if (!Array.isArray(header)) {
-      header = [header];
-    }
+      // convert all headers to arrays.
+      if (!Array.isArray(header)) {
+        header = [header];
+      }
 
-    // add non-empty headers.
-    if (header.length) {
-      contents += prop + ': ' + header.join('; ') + FormData.LINE_BREAK;
+      // add non-empty headers.
+      if (header.length) {
+        contents += prop + ': ' + header.join('; ') + FormData.LINE_BREAK;
+      }
     }
   }
 
   return '--' + this.getBoundary() + FormData.LINE_BREAK + contents + FormData.LINE_BREAK;
 };
 
-FormData.prototype._getContentDisposition = function(value, options) {
+FormData.prototype._getContentDisposition = function (value, options) {
 
-  var filename
-    , contentDisposition
-    ;
-
+  var filename,
+    contentDisposition;
   if (typeof options.filepath === 'string') {
     // custom filepath for relative paths
     filename = path.normalize(options.filepath).replace(/\\/g, '/');
-  } else if (options.filename || value.name || value.path) {
-    // custom filename take precedence
-    // formidable and the browser add a name property
-    // fs- and request- streams have path property
-    filename = path.basename(options.filename || value.name || value.path);
-  } else if (value.readable && value.hasOwnProperty('httpVersion')) {
+  } else if (options.filename || (value && (value.name || value.path))) {
+    /*
+     * custom filename take precedence
+     * formidable and the browser add a name property
+     * fs- and request- streams have path property
+     */
+    filename = path.basename(options.filename || (value && (value.name || value.path)));
+  } else if (value && value.readable && hasOwn(value, 'httpVersion')) {
     // or try http response
     filename = path.basename(value.client._httpMessage.path || '');
   }
 
   if (filename) {
-    contentDisposition = 'filename="' + filename + '"';
+    contentDisposition = 'filename="' + escapeHeaderParam(filename) + '"';
   }
 
   return contentDisposition;
 };
 
-FormData.prototype._getContentType = function(value, options) {
+FormData.prototype._getContentType = function (value, options) {
 
   // use custom content-type above all
   var contentType = options.contentType;
 
   // or try `name` from formidable, browser
-  if (!contentType && value.name) {
+  if (!contentType && value && value.name) {
     contentType = mime.lookup(value.name);
   }
 
   // or try `path` from fs-, request- streams
-  if (!contentType && value.path) {
+  if (!contentType && value && value.path) {
     contentType = mime.lookup(value.path);
   }
 
   // or if it's http-reponse
-  if (!contentType && value.readable && value.hasOwnProperty('httpVersion')) {
+  if (!contentType && value && value.readable && hasOwn(value, 'httpVersion')) {
     contentType = value.headers['content-type'];
   }
 
@@ -4239,18 +4528,18 @@ FormData.prototype._getContentType = function(value, options) {
   }
 
   // fallback to the default content type if `value` is not simple value
-  if (!contentType && typeof value == 'object') {
+  if (!contentType && value && typeof value === 'object') {
     contentType = FormData.DEFAULT_CONTENT_TYPE;
   }
 
   return contentType;
 };
 
-FormData.prototype._multiPartFooter = function() {
-  return function(next) {
+FormData.prototype._multiPartFooter = function () {
+  return function (next) {
     var footer = FormData.LINE_BREAK;
 
-    var lastPart = (this._streams.length === 0);
+    var lastPart = this._streams.length === 0;
     if (lastPart) {
       footer += this._lastBoundary();
     }
@@ -4259,18 +4548,18 @@ FormData.prototype._multiPartFooter = function() {
   }.bind(this);
 };
 
-FormData.prototype._lastBoundary = function() {
+FormData.prototype._lastBoundary = function () {
   return '--' + this.getBoundary() + '--' + FormData.LINE_BREAK;
 };
 
-FormData.prototype.getHeaders = function(userHeaders) {
+FormData.prototype.getHeaders = function (userHeaders) {
   var header;
   var formHeaders = {
-    'content-type': 'multipart/form-data; boundary=' + this.getBoundary()
+    'content-type': 'multipart/form-data; boundary=' + this.getBoundary(),
   };
 
-  for (header in userHeaders) {
-    if (userHeaders.hasOwnProperty(header)) {
+  for (header in userHeaders) { // eslint-disable-line no-restricted-syntax
+    if (hasOwn(userHeaders, header)) {
       formHeaders[header.toLowerCase()] = userHeaders[header];
     }
   }
@@ -4278,7 +4567,14 @@ FormData.prototype.getHeaders = function(userHeaders) {
   return formHeaders;
 };
 
-FormData.prototype.getBoundary = function() {
+FormData.prototype.setBoundary = function (boundary) {
+  if (typeof boundary !== 'string') {
+    throw new TypeError('FormData boundary must be a string');
+  }
+  this._boundary = boundary;
+};
+
+FormData.prototype.getBoundary = function () {
   if (!this._boundary) {
     this._generateBoundary();
   }
@@ -4286,8 +4582,8 @@ FormData.prototype.getBoundary = function() {
   return this._boundary;
 };
 
-FormData.prototype.getBuffer = function() {
-  var dataBuffer = new Buffer.alloc( 0 );
+FormData.prototype.getBuffer = function () {
+  var dataBuffer = Buffer.alloc(0);
   var boundary = this.getBoundary();
 
   // Create the form content. Add Line breaks to the end of data.
@@ -4295,61 +4591,65 @@ FormData.prototype.getBuffer = function() {
     if (typeof this._streams[i] !== 'function') {
 
       // Add content to the buffer.
-      if(Buffer.isBuffer(this._streams[i])) {
-        dataBuffer = Buffer.concat( [dataBuffer, this._streams[i]]);
-      }else {
-        dataBuffer = Buffer.concat( [dataBuffer, Buffer.from(this._streams[i])]);
+      if (Buffer.isBuffer(this._streams[i])) {
+        dataBuffer = Buffer.concat([dataBuffer, this._streams[i]]);
+      } else {
+        dataBuffer = Buffer.concat([dataBuffer, Buffer.from(this._streams[i])]);
       }
 
       // Add break after content.
-      if (typeof this._streams[i] !== 'string' || this._streams[i].substring( 2, boundary.length + 2 ) !== boundary) {
-        dataBuffer = Buffer.concat( [dataBuffer, Buffer.from(FormData.LINE_BREAK)] );
+      if (typeof this._streams[i] !== 'string' || this._streams[i].substring(2, boundary.length + 2) !== boundary) {
+        dataBuffer = Buffer.concat([dataBuffer, Buffer.from(FormData.LINE_BREAK)]);
       }
     }
   }
 
   // Add the footer and return the Buffer object.
-  return Buffer.concat( [dataBuffer, Buffer.from(this._lastBoundary())] );
+  return Buffer.concat([dataBuffer, Buffer.from(this._lastBoundary())]);
 };
 
-FormData.prototype._generateBoundary = function() {
+FormData.prototype._generateBoundary = function () {
   // This generates a 50 character boundary similar to those used by Firefox.
-  // They are optimized for boyer-moore parsing.
-  var boundary = '--------------------------';
-  for (var i = 0; i < 24; i++) {
-    boundary += Math.floor(Math.random() * 10).toString(16);
-  }
 
-  this._boundary = boundary;
+  // They are optimized for boyer-moore parsing.
+  this._boundary = '--------------------------' + crypto.randomBytes(12).toString('hex');
 };
 
-// Note: getLengthSync DOESN'T calculate streams length
-// As workaround one can calculate file size manually
-// and add it as knownLength option
-FormData.prototype.getLengthSync = function() {
+/*
+ * Note: getLengthSync DOESN'T calculate streams length
+ * As workaround one can calculate file size manually
+ * and add it as knownLength option
+ */
+FormData.prototype.getLengthSync = function () {
   var knownLength = this._overheadLength + this._valueLength;
 
-  // Don't get confused, there are 3 "internal" streams for each keyval pair
-  // so it basically checks if there is any value added to the form
+  /*
+   * Don't get confused, there are 3 "internal" streams for each keyval pair
+   * so it basically checks if there is any value added to the form
+   */
   if (this._streams.length) {
     knownLength += this._lastBoundary().length;
   }
 
   // https://github.com/form-data/form-data/issues/40
   if (!this.hasKnownLength()) {
-    // Some async length retrievers are present
-    // therefore synchronous length calculation is false.
-    // Please use getLength(callback) to get proper length
+    /*
+     * Some async length retrievers are present
+     * therefore synchronous length calculation is false.
+     * Please use getLength(callback) to get proper length
+     */
     this._error(new Error('Cannot calculate proper length in synchronous way.'));
   }
 
   return knownLength;
 };
 
-// Public API to check if length of added values is known
-// https://github.com/form-data/form-data/issues/196
-// https://github.com/form-data/form-data/issues/262
-FormData.prototype.hasKnownLength = function() {
+/*
+ * Public API to check if length of added values is known
+ * https://github.com/form-data/form-data/issues/196
+ * https://github.com/form-data/form-data/issues/262
+ */
+FormData.prototype.hasKnownLength = function () {
   var hasKnownLength = true;
 
   if (this._valuesToMeasure.length) {
@@ -4359,7 +4659,7 @@ FormData.prototype.hasKnownLength = function() {
   return hasKnownLength;
 };
 
-FormData.prototype.getLength = function(cb) {
+FormData.prototype.getLength = function (cb) {
   var knownLength = this._overheadLength + this._valueLength;
 
   if (this._streams.length) {
@@ -4371,13 +4671,13 @@ FormData.prototype.getLength = function(cb) {
     return;
   }
 
-  asynckit.parallel(this._valuesToMeasure, this._lengthRetriever, function(err, values) {
+  asynckit.parallel(this._valuesToMeasure, this._lengthRetriever, function (err, values) {
     if (err) {
       cb(err);
       return;
     }
 
-    values.forEach(function(length) {
+    values.forEach(function (length) {
       knownLength += length;
     });
 
@@ -4385,22 +4685,23 @@ FormData.prototype.getLength = function(cb) {
   });
 };
 
-FormData.prototype.submit = function(params, cb) {
-  var request
-    , options
-    , defaults = {method: 'post'}
-    ;
+FormData.prototype.submit = function (params, cb) {
+  var request;
+  var options;
+  var defaults = { method: 'post' };
 
-  // parse provided url if it's string
-  // or treat it as options object
-  if (typeof params == 'string') {
+  /*
+   * parse provided url if it's string
+   * or treat it as options object
+   */
+  if (typeof params === 'string') {
 
     params = parseUrl(params);
     options = populate({
       port: params.port,
       path: params.pathname,
       host: params.hostname,
-      protocol: params.protocol
+      protocol: params.protocol,
     }, defaults);
 
   // use custom params
@@ -4409,7 +4710,7 @@ FormData.prototype.submit = function(params, cb) {
     options = populate(params, defaults);
     // if no port provided use default one
     if (!options.port) {
-      options.port = options.protocol == 'https:' ? 443 : 80;
+      options.port = options.protocol === 'https:' ? 443 : 80;
     }
   }
 
@@ -4417,14 +4718,14 @@ FormData.prototype.submit = function(params, cb) {
   options.headers = this.getHeaders(params.headers);
 
   // https if specified, fallback to http in any other case
-  if (options.protocol == 'https:') {
+  if (options.protocol === 'https:') {
     request = https.request(options);
   } else {
     request = http.request(options);
   }
 
   // get content length and fire away
-  this.getLength(function(err, length) {
+  this.getLength(function (err, length) {
     if (err) {
       this._error(err);
       return;
@@ -4454,7 +4755,7 @@ FormData.prototype.submit = function(params, cb) {
   return request;
 };
 
-FormData.prototype._error = function(err) {
+FormData.prototype._error = function (err) {
   if (!this.error) {
     this.error = err;
     this.pause();
@@ -4465,6 +4766,9 @@ FormData.prototype._error = function(err) {
 FormData.prototype.toString = function () {
   return '[object FormData]';
 };
+setToStringTag(FormData, 'FormData');
+
+module.exports = FormData;
 
 
 /***/ }),
@@ -4472,15 +4776,816 @@ FormData.prototype.toString = function () {
 /***/ 1835:
 /***/ ((module) => {
 
-// populates missing values
-module.exports = function(dst, src) {
+"use strict";
 
-  Object.keys(src).forEach(function(prop)
-  {
+
+// populates missing values
+module.exports = function (dst, src) {
+
+  Object.keys(src).forEach(function (prop) {
     dst[prop] = dst[prop] || src[prop];
   });
 
   return dst;
+};
+
+
+/***/ }),
+
+/***/ 9808:
+/***/ ((module) => {
+
+"use strict";
+
+
+/* eslint no-invalid-this: 1 */
+
+var ERROR_MESSAGE = 'Function.prototype.bind called on incompatible ';
+var toStr = Object.prototype.toString;
+var max = Math.max;
+var funcType = '[object Function]';
+
+var concatty = function concatty(a, b) {
+    var arr = [];
+
+    for (var i = 0; i < a.length; i += 1) {
+        arr[i] = a[i];
+    }
+    for (var j = 0; j < b.length; j += 1) {
+        arr[j + a.length] = b[j];
+    }
+
+    return arr;
+};
+
+var slicy = function slicy(arrLike, offset) {
+    var arr = [];
+    for (var i = offset || 0, j = 0; i < arrLike.length; i += 1, j += 1) {
+        arr[j] = arrLike[i];
+    }
+    return arr;
+};
+
+var joiny = function (arr, joiner) {
+    var str = '';
+    for (var i = 0; i < arr.length; i += 1) {
+        str += arr[i];
+        if (i + 1 < arr.length) {
+            str += joiner;
+        }
+    }
+    return str;
+};
+
+module.exports = function bind(that) {
+    var target = this;
+    if (typeof target !== 'function' || toStr.apply(target) !== funcType) {
+        throw new TypeError(ERROR_MESSAGE + target);
+    }
+    var args = slicy(arguments, 1);
+
+    var bound;
+    var binder = function () {
+        if (this instanceof bound) {
+            var result = target.apply(
+                this,
+                concatty(args, arguments)
+            );
+            if (Object(result) === result) {
+                return result;
+            }
+            return this;
+        }
+        return target.apply(
+            that,
+            concatty(args, arguments)
+        );
+
+    };
+
+    var boundLength = max(0, target.length - args.length);
+    var boundArgs = [];
+    for (var i = 0; i < boundLength; i++) {
+        boundArgs[i] = '$' + i;
+    }
+
+    bound = Function('binder', 'return function (' + joiny(boundArgs, ',') + '){ return binder.apply(this,arguments); }')(binder);
+
+    if (target.prototype) {
+        var Empty = function Empty() {};
+        Empty.prototype = target.prototype;
+        bound.prototype = new Empty();
+        Empty.prototype = null;
+    }
+
+    return bound;
+};
+
+
+/***/ }),
+
+/***/ 7564:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var implementation = __nccwpck_require__(9808);
+
+module.exports = Function.prototype.bind || implementation;
+
+
+/***/ }),
+
+/***/ 470:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var undefined;
+
+var $Object = __nccwpck_require__(5399);
+
+var $Error = __nccwpck_require__(1620);
+var $EvalError = __nccwpck_require__(3056);
+var $RangeError = __nccwpck_require__(4585);
+var $ReferenceError = __nccwpck_require__(6905);
+var $SyntaxError = __nccwpck_require__(105);
+var $TypeError = __nccwpck_require__(3314);
+var $URIError = __nccwpck_require__(2578);
+
+var abs = __nccwpck_require__(5641);
+var floor = __nccwpck_require__(6171);
+var max = __nccwpck_require__(7147);
+var min = __nccwpck_require__(1017);
+var pow = __nccwpck_require__(6947);
+var round = __nccwpck_require__(2621);
+var sign = __nccwpck_require__(156);
+
+var $Function = Function;
+
+// eslint-disable-next-line consistent-return
+var getEvalledConstructor = function (expressionSyntax) {
+	try {
+		return $Function('"use strict"; return (' + expressionSyntax + ').constructor;')();
+	} catch (e) {}
+};
+
+var $gOPD = __nccwpck_require__(3170);
+var $defineProperty = __nccwpck_require__(9094);
+
+var throwTypeError = function () {
+	throw new $TypeError();
+};
+var ThrowTypeError = $gOPD
+	? (function () {
+		try {
+			// eslint-disable-next-line no-unused-expressions, no-caller, no-restricted-properties
+			arguments.callee; // IE 8 does not throw here
+			return throwTypeError;
+		} catch (calleeThrows) {
+			try {
+				// IE 8 throws on Object.getOwnPropertyDescriptor(arguments, '')
+				return $gOPD(arguments, 'callee').get;
+			} catch (gOPDthrows) {
+				return throwTypeError;
+			}
+		}
+	}())
+	: throwTypeError;
+
+var hasSymbols = __nccwpck_require__(3336)();
+
+var getProto = __nccwpck_require__(1967);
+var $ObjectGPO = __nccwpck_require__(1311);
+var $ReflectGPO = __nccwpck_require__(8681);
+
+var $apply = __nccwpck_require__(3945);
+var $call = __nccwpck_require__(8093);
+
+var needsEval = {};
+
+var TypedArray = typeof Uint8Array === 'undefined' || !getProto ? undefined : getProto(Uint8Array);
+
+var INTRINSICS = {
+	__proto__: null,
+	'%AggregateError%': typeof AggregateError === 'undefined' ? undefined : AggregateError,
+	'%Array%': Array,
+	'%ArrayBuffer%': typeof ArrayBuffer === 'undefined' ? undefined : ArrayBuffer,
+	'%ArrayIteratorPrototype%': hasSymbols && getProto ? getProto([][Symbol.iterator]()) : undefined,
+	'%AsyncFromSyncIteratorPrototype%': undefined,
+	'%AsyncFunction%': needsEval,
+	'%AsyncGenerator%': needsEval,
+	'%AsyncGeneratorFunction%': needsEval,
+	'%AsyncIteratorPrototype%': needsEval,
+	'%Atomics%': typeof Atomics === 'undefined' ? undefined : Atomics,
+	'%BigInt%': typeof BigInt === 'undefined' ? undefined : BigInt,
+	'%BigInt64Array%': typeof BigInt64Array === 'undefined' ? undefined : BigInt64Array,
+	'%BigUint64Array%': typeof BigUint64Array === 'undefined' ? undefined : BigUint64Array,
+	'%Boolean%': Boolean,
+	'%DataView%': typeof DataView === 'undefined' ? undefined : DataView,
+	'%Date%': Date,
+	'%decodeURI%': decodeURI,
+	'%decodeURIComponent%': decodeURIComponent,
+	'%encodeURI%': encodeURI,
+	'%encodeURIComponent%': encodeURIComponent,
+	'%Error%': $Error,
+	'%eval%': eval, // eslint-disable-line no-eval
+	'%EvalError%': $EvalError,
+	'%Float16Array%': typeof Float16Array === 'undefined' ? undefined : Float16Array,
+	'%Float32Array%': typeof Float32Array === 'undefined' ? undefined : Float32Array,
+	'%Float64Array%': typeof Float64Array === 'undefined' ? undefined : Float64Array,
+	'%FinalizationRegistry%': typeof FinalizationRegistry === 'undefined' ? undefined : FinalizationRegistry,
+	'%Function%': $Function,
+	'%GeneratorFunction%': needsEval,
+	'%Int8Array%': typeof Int8Array === 'undefined' ? undefined : Int8Array,
+	'%Int16Array%': typeof Int16Array === 'undefined' ? undefined : Int16Array,
+	'%Int32Array%': typeof Int32Array === 'undefined' ? undefined : Int32Array,
+	'%isFinite%': isFinite,
+	'%isNaN%': isNaN,
+	'%IteratorPrototype%': hasSymbols && getProto ? getProto(getProto([][Symbol.iterator]())) : undefined,
+	'%JSON%': typeof JSON === 'object' ? JSON : undefined,
+	'%Map%': typeof Map === 'undefined' ? undefined : Map,
+	'%MapIteratorPrototype%': typeof Map === 'undefined' || !hasSymbols || !getProto ? undefined : getProto(new Map()[Symbol.iterator]()),
+	'%Math%': Math,
+	'%Number%': Number,
+	'%Object%': $Object,
+	'%Object.getOwnPropertyDescriptor%': $gOPD,
+	'%parseFloat%': parseFloat,
+	'%parseInt%': parseInt,
+	'%Promise%': typeof Promise === 'undefined' ? undefined : Promise,
+	'%Proxy%': typeof Proxy === 'undefined' ? undefined : Proxy,
+	'%RangeError%': $RangeError,
+	'%ReferenceError%': $ReferenceError,
+	'%Reflect%': typeof Reflect === 'undefined' ? undefined : Reflect,
+	'%RegExp%': RegExp,
+	'%Set%': typeof Set === 'undefined' ? undefined : Set,
+	'%SetIteratorPrototype%': typeof Set === 'undefined' || !hasSymbols || !getProto ? undefined : getProto(new Set()[Symbol.iterator]()),
+	'%SharedArrayBuffer%': typeof SharedArrayBuffer === 'undefined' ? undefined : SharedArrayBuffer,
+	'%String%': String,
+	'%StringIteratorPrototype%': hasSymbols && getProto ? getProto(''[Symbol.iterator]()) : undefined,
+	'%Symbol%': hasSymbols ? Symbol : undefined,
+	'%SyntaxError%': $SyntaxError,
+	'%ThrowTypeError%': ThrowTypeError,
+	'%TypedArray%': TypedArray,
+	'%TypeError%': $TypeError,
+	'%Uint8Array%': typeof Uint8Array === 'undefined' ? undefined : Uint8Array,
+	'%Uint8ClampedArray%': typeof Uint8ClampedArray === 'undefined' ? undefined : Uint8ClampedArray,
+	'%Uint16Array%': typeof Uint16Array === 'undefined' ? undefined : Uint16Array,
+	'%Uint32Array%': typeof Uint32Array === 'undefined' ? undefined : Uint32Array,
+	'%URIError%': $URIError,
+	'%WeakMap%': typeof WeakMap === 'undefined' ? undefined : WeakMap,
+	'%WeakRef%': typeof WeakRef === 'undefined' ? undefined : WeakRef,
+	'%WeakSet%': typeof WeakSet === 'undefined' ? undefined : WeakSet,
+
+	'%Function.prototype.call%': $call,
+	'%Function.prototype.apply%': $apply,
+	'%Object.defineProperty%': $defineProperty,
+	'%Object.getPrototypeOf%': $ObjectGPO,
+	'%Math.abs%': abs,
+	'%Math.floor%': floor,
+	'%Math.max%': max,
+	'%Math.min%': min,
+	'%Math.pow%': pow,
+	'%Math.round%': round,
+	'%Math.sign%': sign,
+	'%Reflect.getPrototypeOf%': $ReflectGPO
+};
+
+if (getProto) {
+	try {
+		null.error; // eslint-disable-line no-unused-expressions
+	} catch (e) {
+		// https://github.com/tc39/proposal-shadowrealm/pull/384#issuecomment-1364264229
+		var errorProto = getProto(getProto(e));
+		INTRINSICS['%Error.prototype%'] = errorProto;
+	}
+}
+
+var doEval = function doEval(name) {
+	var value;
+	if (name === '%AsyncFunction%') {
+		value = getEvalledConstructor('async function () {}');
+	} else if (name === '%GeneratorFunction%') {
+		value = getEvalledConstructor('function* () {}');
+	} else if (name === '%AsyncGeneratorFunction%') {
+		value = getEvalledConstructor('async function* () {}');
+	} else if (name === '%AsyncGenerator%') {
+		var fn = doEval('%AsyncGeneratorFunction%');
+		if (fn) {
+			value = fn.prototype;
+		}
+	} else if (name === '%AsyncIteratorPrototype%') {
+		var gen = doEval('%AsyncGenerator%');
+		if (gen && getProto) {
+			value = getProto(gen.prototype);
+		}
+	}
+
+	INTRINSICS[name] = value;
+
+	return value;
+};
+
+var LEGACY_ALIASES = {
+	__proto__: null,
+	'%ArrayBufferPrototype%': ['ArrayBuffer', 'prototype'],
+	'%ArrayPrototype%': ['Array', 'prototype'],
+	'%ArrayProto_entries%': ['Array', 'prototype', 'entries'],
+	'%ArrayProto_forEach%': ['Array', 'prototype', 'forEach'],
+	'%ArrayProto_keys%': ['Array', 'prototype', 'keys'],
+	'%ArrayProto_values%': ['Array', 'prototype', 'values'],
+	'%AsyncFunctionPrototype%': ['AsyncFunction', 'prototype'],
+	'%AsyncGenerator%': ['AsyncGeneratorFunction', 'prototype'],
+	'%AsyncGeneratorPrototype%': ['AsyncGeneratorFunction', 'prototype', 'prototype'],
+	'%BooleanPrototype%': ['Boolean', 'prototype'],
+	'%DataViewPrototype%': ['DataView', 'prototype'],
+	'%DatePrototype%': ['Date', 'prototype'],
+	'%ErrorPrototype%': ['Error', 'prototype'],
+	'%EvalErrorPrototype%': ['EvalError', 'prototype'],
+	'%Float32ArrayPrototype%': ['Float32Array', 'prototype'],
+	'%Float64ArrayPrototype%': ['Float64Array', 'prototype'],
+	'%FunctionPrototype%': ['Function', 'prototype'],
+	'%Generator%': ['GeneratorFunction', 'prototype'],
+	'%GeneratorPrototype%': ['GeneratorFunction', 'prototype', 'prototype'],
+	'%Int8ArrayPrototype%': ['Int8Array', 'prototype'],
+	'%Int16ArrayPrototype%': ['Int16Array', 'prototype'],
+	'%Int32ArrayPrototype%': ['Int32Array', 'prototype'],
+	'%JSONParse%': ['JSON', 'parse'],
+	'%JSONStringify%': ['JSON', 'stringify'],
+	'%MapPrototype%': ['Map', 'prototype'],
+	'%NumberPrototype%': ['Number', 'prototype'],
+	'%ObjectPrototype%': ['Object', 'prototype'],
+	'%ObjProto_toString%': ['Object', 'prototype', 'toString'],
+	'%ObjProto_valueOf%': ['Object', 'prototype', 'valueOf'],
+	'%PromisePrototype%': ['Promise', 'prototype'],
+	'%PromiseProto_then%': ['Promise', 'prototype', 'then'],
+	'%Promise_all%': ['Promise', 'all'],
+	'%Promise_reject%': ['Promise', 'reject'],
+	'%Promise_resolve%': ['Promise', 'resolve'],
+	'%RangeErrorPrototype%': ['RangeError', 'prototype'],
+	'%ReferenceErrorPrototype%': ['ReferenceError', 'prototype'],
+	'%RegExpPrototype%': ['RegExp', 'prototype'],
+	'%SetPrototype%': ['Set', 'prototype'],
+	'%SharedArrayBufferPrototype%': ['SharedArrayBuffer', 'prototype'],
+	'%StringPrototype%': ['String', 'prototype'],
+	'%SymbolPrototype%': ['Symbol', 'prototype'],
+	'%SyntaxErrorPrototype%': ['SyntaxError', 'prototype'],
+	'%TypedArrayPrototype%': ['TypedArray', 'prototype'],
+	'%TypeErrorPrototype%': ['TypeError', 'prototype'],
+	'%Uint8ArrayPrototype%': ['Uint8Array', 'prototype'],
+	'%Uint8ClampedArrayPrototype%': ['Uint8ClampedArray', 'prototype'],
+	'%Uint16ArrayPrototype%': ['Uint16Array', 'prototype'],
+	'%Uint32ArrayPrototype%': ['Uint32Array', 'prototype'],
+	'%URIErrorPrototype%': ['URIError', 'prototype'],
+	'%WeakMapPrototype%': ['WeakMap', 'prototype'],
+	'%WeakSetPrototype%': ['WeakSet', 'prototype']
+};
+
+var bind = __nccwpck_require__(7564);
+var hasOwn = __nccwpck_require__(4076);
+var $concat = bind.call($call, Array.prototype.concat);
+var $spliceApply = bind.call($apply, Array.prototype.splice);
+var $replace = bind.call($call, String.prototype.replace);
+var $strSlice = bind.call($call, String.prototype.slice);
+var $exec = bind.call($call, RegExp.prototype.exec);
+
+/* adapted from https://github.com/lodash/lodash/blob/4.17.15/dist/lodash.js#L6735-L6744 */
+var rePropName = /[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g;
+var reEscapeChar = /\\(\\)?/g; /** Used to match backslashes in property paths. */
+var stringToPath = function stringToPath(string) {
+	var first = $strSlice(string, 0, 1);
+	var last = $strSlice(string, -1);
+	if (first === '%' && last !== '%') {
+		throw new $SyntaxError('invalid intrinsic syntax, expected closing `%`');
+	} else if (last === '%' && first !== '%') {
+		throw new $SyntaxError('invalid intrinsic syntax, expected opening `%`');
+	}
+	var result = [];
+	$replace(string, rePropName, function (match, number, quote, subString) {
+		result[result.length] = quote ? $replace(subString, reEscapeChar, '$1') : number || match;
+	});
+	return result;
+};
+/* end adaptation */
+
+var getBaseIntrinsic = function getBaseIntrinsic(name, allowMissing) {
+	var intrinsicName = name;
+	var alias;
+	if (hasOwn(LEGACY_ALIASES, intrinsicName)) {
+		alias = LEGACY_ALIASES[intrinsicName];
+		intrinsicName = '%' + alias[0] + '%';
+	}
+
+	if (hasOwn(INTRINSICS, intrinsicName)) {
+		var value = INTRINSICS[intrinsicName];
+		if (value === needsEval) {
+			value = doEval(intrinsicName);
+		}
+		if (typeof value === 'undefined' && !allowMissing) {
+			throw new $TypeError('intrinsic ' + name + ' exists, but is not available. Please file an issue!');
+		}
+
+		return {
+			alias: alias,
+			name: intrinsicName,
+			value: value
+		};
+	}
+
+	throw new $SyntaxError('intrinsic ' + name + ' does not exist!');
+};
+
+module.exports = function GetIntrinsic(name, allowMissing) {
+	if (typeof name !== 'string' || name.length === 0) {
+		throw new $TypeError('intrinsic name must be a non-empty string');
+	}
+	if (arguments.length > 1 && typeof allowMissing !== 'boolean') {
+		throw new $TypeError('"allowMissing" argument must be a boolean');
+	}
+
+	if ($exec(/^%?[^%]*%?$/, name) === null) {
+		throw new $SyntaxError('`%` may not be present anywhere but at the beginning and end of the intrinsic name');
+	}
+	var parts = stringToPath(name);
+	var intrinsicBaseName = parts.length > 0 ? parts[0] : '';
+
+	var intrinsic = getBaseIntrinsic('%' + intrinsicBaseName + '%', allowMissing);
+	var intrinsicRealName = intrinsic.name;
+	var value = intrinsic.value;
+	var skipFurtherCaching = false;
+
+	var alias = intrinsic.alias;
+	if (alias) {
+		intrinsicBaseName = alias[0];
+		$spliceApply(parts, $concat([0, 1], alias));
+	}
+
+	for (var i = 1, isOwn = true; i < parts.length; i += 1) {
+		var part = parts[i];
+		var first = $strSlice(part, 0, 1);
+		var last = $strSlice(part, -1);
+		if (
+			(
+				(first === '"' || first === "'" || first === '`')
+				|| (last === '"' || last === "'" || last === '`')
+			)
+			&& first !== last
+		) {
+			throw new $SyntaxError('property names with quotes must have matching quotes');
+		}
+		if (part === 'constructor' || !isOwn) {
+			skipFurtherCaching = true;
+		}
+
+		intrinsicBaseName += '.' + part;
+		intrinsicRealName = '%' + intrinsicBaseName + '%';
+
+		if (hasOwn(INTRINSICS, intrinsicRealName)) {
+			value = INTRINSICS[intrinsicRealName];
+		} else if (value != null) {
+			if (!(part in value)) {
+				if (!allowMissing) {
+					throw new $TypeError('base intrinsic for ' + name + ' exists, but the property is not available.');
+				}
+				return void undefined;
+			}
+			if ($gOPD && (i + 1) >= parts.length) {
+				var desc = $gOPD(value, part);
+				isOwn = !!desc;
+
+				// By convention, when a data property is converted to an accessor
+				// property to emulate a data property that does not suffer from
+				// the override mistake, that accessor's getter is marked with
+				// an `originalValue` property. Here, when we detect this, we
+				// uphold the illusion by pretending to see that original data
+				// property, i.e., returning the value rather than the getter
+				// itself.
+				if (isOwn && 'get' in desc && !('originalValue' in desc.get)) {
+					value = desc.get;
+				} else {
+					value = value[part];
+				}
+			} else {
+				isOwn = hasOwn(value, part);
+				value = value[part];
+			}
+
+			if (isOwn && !skipFurtherCaching) {
+				INTRINSICS[intrinsicRealName] = value;
+			}
+		}
+	}
+	return value;
+};
+
+
+/***/ }),
+
+/***/ 1311:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var $Object = __nccwpck_require__(5399);
+
+/** @type {import('./Object.getPrototypeOf')} */
+module.exports = $Object.getPrototypeOf || null;
+
+
+/***/ }),
+
+/***/ 8681:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./Reflect.getPrototypeOf')} */
+module.exports = (typeof Reflect !== 'undefined' && Reflect.getPrototypeOf) || null;
+
+
+/***/ }),
+
+/***/ 1967:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var reflectGetProto = __nccwpck_require__(8681);
+var originalGetProto = __nccwpck_require__(1311);
+
+var getDunderProto = __nccwpck_require__(6669);
+
+/** @type {import('.')} */
+module.exports = reflectGetProto
+	? function getProto(O) {
+		// @ts-expect-error TS can't narrow inside a closure, for some reason
+		return reflectGetProto(O);
+	}
+	: originalGetProto
+		? function getProto(O) {
+			if (!O || (typeof O !== 'object' && typeof O !== 'function')) {
+				throw new TypeError('getProto: not an object');
+			}
+			// @ts-expect-error TS can't narrow inside a closure, for some reason
+			return originalGetProto(O);
+		}
+		: getDunderProto
+			? function getProto(O) {
+				// @ts-expect-error TS can't narrow inside a closure, for some reason
+				return getDunderProto(O);
+			}
+			: null;
+
+
+/***/ }),
+
+/***/ 1174:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./gOPD')} */
+module.exports = Object.getOwnPropertyDescriptor;
+
+
+/***/ }),
+
+/***/ 3170:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+/** @type {import('.')} */
+var $gOPD = __nccwpck_require__(1174);
+
+if ($gOPD) {
+	try {
+		$gOPD([], 'length');
+	} catch (e) {
+		// IE 8 has a broken gOPD
+		$gOPD = null;
+	}
+}
+
+module.exports = $gOPD;
+
+
+/***/ }),
+
+/***/ 3336:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var origSymbol = typeof Symbol !== 'undefined' && Symbol;
+var hasSymbolSham = __nccwpck_require__(1114);
+
+/** @type {import('.')} */
+module.exports = function hasNativeSymbols() {
+	if (typeof origSymbol !== 'function') { return false; }
+	if (typeof Symbol !== 'function') { return false; }
+	if (typeof origSymbol('foo') !== 'symbol') { return false; }
+	if (typeof Symbol('bar') !== 'symbol') { return false; }
+
+	return hasSymbolSham();
+};
+
+
+/***/ }),
+
+/***/ 1114:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./shams')} */
+/* eslint complexity: [2, 18], max-statements: [2, 33] */
+module.exports = function hasSymbols() {
+	if (typeof Symbol !== 'function' || typeof Object.getOwnPropertySymbols !== 'function') { return false; }
+	if (typeof Symbol.iterator === 'symbol') { return true; }
+
+	/** @type {{ [k in symbol]?: unknown }} */
+	var obj = {};
+	var sym = Symbol('test');
+	var symObj = Object(sym);
+	if (typeof sym === 'string') { return false; }
+
+	if (Object.prototype.toString.call(sym) !== '[object Symbol]') { return false; }
+	if (Object.prototype.toString.call(symObj) !== '[object Symbol]') { return false; }
+
+	// temp disabled per https://github.com/ljharb/object.assign/issues/17
+	// if (sym instanceof Symbol) { return false; }
+	// temp disabled per https://github.com/WebReflection/get-own-property-symbols/issues/4
+	// if (!(symObj instanceof Symbol)) { return false; }
+
+	// if (typeof Symbol.prototype.toString !== 'function') { return false; }
+	// if (String(sym) !== Symbol.prototype.toString.call(sym)) { return false; }
+
+	var symVal = 42;
+	obj[sym] = symVal;
+	for (var _ in obj) { return false; } // eslint-disable-line no-restricted-syntax, no-unreachable-loop
+	if (typeof Object.keys === 'function' && Object.keys(obj).length !== 0) { return false; }
+
+	if (typeof Object.getOwnPropertyNames === 'function' && Object.getOwnPropertyNames(obj).length !== 0) { return false; }
+
+	var syms = Object.getOwnPropertySymbols(obj);
+	if (syms.length !== 1 || syms[0] !== sym) { return false; }
+
+	if (!Object.prototype.propertyIsEnumerable.call(obj, sym)) { return false; }
+
+	if (typeof Object.getOwnPropertyDescriptor === 'function') {
+		// eslint-disable-next-line no-extra-parens
+		var descriptor = /** @type {PropertyDescriptor} */ (Object.getOwnPropertyDescriptor(obj, sym));
+		if (descriptor.value !== symVal || descriptor.enumerable !== true) { return false; }
+	}
+
+	return true;
+};
+
+
+/***/ }),
+
+/***/ 5479:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var hasSymbols = __nccwpck_require__(1114);
+
+/** @type {import('.')} */
+module.exports = function hasToStringTagShams() {
+	return hasSymbols() && !!Symbol.toStringTag;
+};
+
+
+/***/ }),
+
+/***/ 4076:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var call = Function.prototype.call;
+var $hasOwn = Object.prototype.hasOwnProperty;
+var bind = __nccwpck_require__(7564);
+
+/** @type {import('.')} */
+module.exports = bind.call(call, $hasOwn);
+
+
+/***/ }),
+
+/***/ 5641:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./abs')} */
+module.exports = Math.abs;
+
+
+/***/ }),
+
+/***/ 6171:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./floor')} */
+module.exports = Math.floor;
+
+
+/***/ }),
+
+/***/ 7044:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./isNaN')} */
+module.exports = Number.isNaN || function isNaN(a) {
+	return a !== a;
+};
+
+
+/***/ }),
+
+/***/ 7147:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./max')} */
+module.exports = Math.max;
+
+
+/***/ }),
+
+/***/ 1017:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./min')} */
+module.exports = Math.min;
+
+
+/***/ }),
+
+/***/ 6947:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./pow')} */
+module.exports = Math.pow;
+
+
+/***/ }),
+
+/***/ 2621:
+/***/ ((module) => {
+
+"use strict";
+
+
+/** @type {import('./round')} */
+module.exports = Math.round;
+
+
+/***/ }),
+
+/***/ 156:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var $isNaN = __nccwpck_require__(7044);
+
+/** @type {import('./sign')} */
+module.exports = function sign(number) {
+	if ($isNaN(number) || number === 0) {
+		return number;
+	}
+	return number < 0 ? -1 : +1;
 };
 
 
@@ -31346,6 +32451,7 @@ function appInspect(_a) {
                             .join('\n')}\nTags: ${check.tags.join(',')}`);
                         break;
                     case 'warning':
+                    case 'future_failure':
                         (0, core_1.warning)(`Warning: ${check.name}\n${check.description}\n${(check.messages || [])
                             .map((m) => m.message)
                             .join('\n')}\nTags: ${check.tags.join(',')}`);
@@ -31355,6 +32461,7 @@ function appInspect(_a) {
                         break;
                     case 'success':
                     case 'not_applicable':
+                    case 'skipped':
                         // ignore
                         break;
                     default:
