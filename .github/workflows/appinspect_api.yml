@@ -8,6 +8,8 @@ on:
 jobs:
     appinspect:
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4
@@ -50,7 +52,7 @@ jobs:
               if: startsWith(github.ref, 'refs/tags/')
               env:
                   GHR_PATH: ./dist/github_dashboard_collection.spl
-                  GITHUB_TOKEN: ${{ secrets.API_TOKEN }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - name: Publish App to Splunkbase
               uses: ./.github/actions/appinspect_publish # Uses an action in the root directory
               with:
