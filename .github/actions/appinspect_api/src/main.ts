@@ -112,11 +112,11 @@ async function run(): Promise<void> {
         const user = getInput('splunkUser');
         const password = getInput('splunkPassword');
         const includedTags = splitTags(getInput('includedTags'));
-        const excludedTags = splitTags(getInput('includedTags'));
+        const excludedTags = splitTags(getInput('excludedTags'));
 
         await appInspect({ user, password, filePath, includedTags, excludedTags });
     } catch (error) {
-        setFailed(error.message);
+        setFailed(error instanceof Error ? error.message : String(error));
     }
 }
 
