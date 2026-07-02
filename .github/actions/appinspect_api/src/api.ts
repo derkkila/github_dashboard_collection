@@ -20,13 +20,13 @@ async function req<T>({
         headers,
     });
     if (!res.ok) {
+        let detail = '';
         try {
-            const data = await res.text();
-            throw new Error(`HTTP status ${res.status} from ${url}: ${data}`);
-        } catch (e) {
-            // ignore
+            detail = `: ${await res.text()}`;
+        } catch (_) {
+            // ignore body read failure
         }
-        throw new Error(`HTTP status ${res.status} from ${url}`);
+        throw new Error(`HTTP status ${res.status} from ${url}${detail}`);
     }
     return res.json();
 }

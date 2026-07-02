@@ -2,7 +2,7 @@ name: App Inspect
 description: Run Splunk appinspect for a splunk app bundle
 author: Siegfried Puchbauer
 runs:
-    using: node12
+    using: node20
     main: dist/index.js
 inputs:
     filePath:
