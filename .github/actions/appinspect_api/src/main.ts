@@ -76,6 +76,7 @@ async function appInspect({
                     );
                     break;
                 case 'warning':
+                case 'future_failure':
                     warning(
                         `Warning: ${check.name}\n${check.description}\n${(check.messages || [])
                             .map((m) => m.message)
@@ -87,6 +88,7 @@ async function appInspect({
                     break;
                 case 'success':
                 case 'not_applicable':
+                case 'skipped':
                     // ignore
                     break;
                 default:
