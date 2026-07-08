@@ -1,10 +1,12 @@
 name: Send Workflow Trace to Splunk Observability
 
 on:
-  workflow_run:
-    workflows: ["*"]
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'GitHub Actions workflow run ID to trace'
+        required: true
+        type: string
 
 permissions:
   actions: read
@@ -13,9 +15,6 @@ permissions:
 jobs:
   ExportTrace:
     runs-on: ubuntu-latest
-    if: >-
-      ${{ github.event.workflow_run.name != 'Send Workflow Trace to Splunk Observability'
-      && github.event.workflow_run.name != 'Send Workflow Logs to Splunk' }}
     steps:
       - name: Export workflow run to Splunk Observability Cloud
         uses: corentinmusard/otel-cicd-action@v2
@@ -25,4 +24,4 @@ jobs:
           otelServiceName: github_dashboard_collection
           extraAttributes: "deployment.environment=github-actions"
           githubToken: ${{ github.token }}
-          runId: ${{ github.event.workflow_run.id }}
+          runId: ${{ inputs.run_id }}
