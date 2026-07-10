@@ -1,32 +1,34 @@
 name: Send Workflow Logs to Splunk
 
-# Controls when the action will run.
 on:
-  workflow_run:
-    workflows: ["*"]
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'GitHub Actions workflow run ID to log'
+        required: true
+        type: string
+      workflow_name:
+        description: 'Name of the workflow that completed'
+        required: false
+        type: string
 
 permissions:
   actions: read
   contents: read
 
 env:
-  triggerID: ${{ github.event.workflow_run.id }}
-  triggerJob: ${{ github.event.workflow_run.name }}
+  triggerID: ${{ inputs.run_id }}
+  triggerJob: ${{ inputs.workflow_name }}
 
 jobs:
   WriteLogs:
     runs-on: ubuntu-latest
-    if: >-
-      ${{ github.event.workflow_run.name != 'Send Workflow Logs to Splunk'
-      && github.event.workflow_run.name != 'Send Workflow Trace to Splunk Observability' }}
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Output Job ID
-        run: echo ${{ github.event.workflow_run.id }}
+        run: echo ${{ inputs.run_id }}
 
       - name: Send Workflow logs to Splunk
         if: ${{ always() }}
