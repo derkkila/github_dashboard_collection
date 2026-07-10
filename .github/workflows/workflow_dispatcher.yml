@@ -15,34 +15,19 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       ${{ github.event.workflow_run.name != 'Workflow Dispatcher'
-      && github.event.workflow_run.name != 'Send Workflow Logs to Splunk'
-      && github.event.workflow_run.name != 'Send Workflow Trace to Splunk Observability' }}
+      && github.event.workflow_run.name != 'Send Workflow Telemetry to Splunk' }}
     steps:
-      - name: Dispatch Send Workflow Logs to Splunk
+      - name: Dispatch Send Workflow Telemetry to Splunk
         uses: actions/github-script@v7
         with:
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'log_to_splunk.yml',
+              workflow_id: 'send_telemetry_to_splunk.yml',
               ref: context.ref,
               inputs: {
                 run_id: '${{ github.event.workflow_run.id }}',
                 workflow_name: '${{ github.event.workflow_run.name }}'
-              }
-            });
-
-      - name: Dispatch Send Workflow Trace to Splunk Observability
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'otel_trace_to_o11y.yml',
-              ref: context.ref,
-              inputs: {
-                run_id: '${{ github.event.workflow_run.id }}'
               }
             });
